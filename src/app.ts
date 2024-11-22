@@ -6,6 +6,8 @@ import express, {
 	type Request,
 } from "express";
 
+import { NotFoundError } from "@/errors";
+import { errorHandler } from "@/middleware/errorHandler.middleware";
 import morganMiddleware from "@/middleware/morgan.middleware";
 
 const app: Application = express();
@@ -19,6 +21,10 @@ app
 		res.json({
 			ok: true,
 		});
-	});
+	})
+	.all("*splat", () => {
+		throw new NotFoundError();
+	})
+	.use(errorHandler);
 
 export default app;
