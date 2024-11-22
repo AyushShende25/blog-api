@@ -5,6 +5,7 @@ import Logger from "@/utils/logger";
 const envSchema = z.object({
 	PORT: z.coerce.number().default(8000),
 	NODE_ENV: z.enum(["development", "production"]).default("development"),
+	DATABASE_URL: z.string(),
 });
 
 const envVars = envSchema.safeParse(process.env);
