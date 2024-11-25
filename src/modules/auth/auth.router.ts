@@ -3,6 +3,7 @@ import { Router } from "express";
 import { validate } from "@/middleware/validateRequest.middleware";
 import {
   loginHandler,
+  refreshTokensHandler,
   signupHandler,
   verifyEmailHandler,
 } from "@modules/auth/auth.controller";
@@ -19,5 +20,7 @@ router.post("/signup", validate(signupSchema), signupHandler);
 router.post("/verify-email", validate(verifyEmailSchema), verifyEmailHandler);
 
 router.post("/login", validate(loginSchema), loginHandler);
+
+router.post("/refresh", refreshTokensHandler);
 
 export default router;

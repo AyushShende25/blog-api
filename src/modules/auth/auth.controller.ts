@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
 import { env } from "@/config/env";
+import { UnAuthorizedError } from "@/errors";
 import type {
   LoginInput,
   SignupInput,
@@ -9,6 +10,7 @@ import type {
 } from "@modules/auth/auth.schema";
 import {
   loginService,
+  refreshTokens,
   signupService,
   verifyEmailService,
 } from "@modules/auth/auth.service";
@@ -44,7 +46,7 @@ export const loginHandler = async (
   req: Request<{}, {}, LoginInput>,
   res: Response,
 ) => {
-  const { access_token, refresh_token, user } = await loginService(req.body);
+  const { access_token, refresh_token } = await loginService(req.body);
 
   res.cookie("access_token", access_token, {
     ...cookieOptions,
@@ -55,5 +57,20 @@ export const loginHandler = async (
     expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
   });
 
-  res.status(200).json({ user, access_token, refresh_token });
+  res.status(200).json({ message: "User login success" });
+};
+
+export const refreshTokensHandler = async (req: Request, res: Response) => {
+  const { access_token, refresh_token } = await refreshTokens(req);
+
+  res.cookie("access_token", access_token, {
+    ...cookieOptions,
+    expires: new Date(Date.now() + 1000 * 60 * 5),
+  });
+  res.cookie("refresh_token", refresh_token, {
+    ...cookieOptions,
+    expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+  });
+
+  res.status(StatusCodes.OK).json({ message: "new tokens generation success" });
 };
