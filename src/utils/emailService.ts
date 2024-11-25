@@ -7,13 +7,11 @@ class Email {
 	private to: string;
 	private username: string;
 	private from: string;
-	private code: string;
 
-	constructor(user: User, code: string) {
+	constructor(user: User) {
 		this.to = user.email;
 		this.username = user.username;
 		this.from = `Inkspire - <${env.EMAIL_FROM}>`;
-		this.code = code;
 	}
 
 	newTransport() {
@@ -38,7 +36,7 @@ class Email {
 		await this.newTransport().sendMail(mailOptions);
 	}
 
-	async sendVerificationCode() {
+	async sendVerificationCode(code: string) {
 		await this.send(
 			`    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
   <h2 style="color: #333333; text-align: center;">Welcome to Inkspire, ${this.username}!</h2>
@@ -47,7 +45,7 @@ class Email {
   </p>
   <div style="text-align: center; margin: 20px 0;">
     <div style="display: inline-block; background-color: #f4f4f4; color: #333333; font-size: 24px; font-weight: bold; padding: 10px 20px; border: 1px solid #e0e0e0; border-radius: 5px; letter-spacing: 2px;">
-      ${this.code}
+      ${code}
     </div>
   </div>
   <p style="font-size: 14px; color: #555555; text-align: center;">
@@ -63,6 +61,26 @@ class Email {
 </div>
       `,
 			"Verify your account details",
+		);
+	}
+
+	async sendWelcome() {
+		await this.send(
+			`<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+  <h2 style="color: #333333; text-align: center;">Welcome to Inkspire, ${this.username}!</h2>
+  <p style="font-size: 16px; color: #555555;">
+    We're thrilled to have you on board. Inkspire is your platform to share ideas, connect with like-minded individuals, and bring your creativity to life.
+  </p>
+  <p style="font-size: 14px; color: #999999;">
+    If you have any questions or need assistance, feel free to reach out to our support team at any time.
+  </p>
+  <hr style="border-top: 1px solid #e0e0e0;">
+  <p style="font-size: 12px; color: #999999; text-align: center;">
+    © 2024 Inkspire. All rights reserved.
+  </p>
+</div>
+`,
+			"welcome to Inkspire",
 		);
 	}
 }

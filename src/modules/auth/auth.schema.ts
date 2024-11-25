@@ -19,4 +19,13 @@ export const signupSchema = object({
 	}),
 });
 
+export const verifyEmailSchema = object({
+	body: object({
+		verificationCode: string({
+			required_error: "verification code is required",
+		}).trim(),
+	}),
+});
+
 export type SignupInput = z.infer<typeof signupSchema>["body"];
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>["body"];

@@ -1,11 +1,14 @@
 import prisma from "@/config/db";
-import { env } from "@/config/env";
 import { BadRequestError, ServiceUnavailableError } from "@/errors";
-import { setVerificationCode } from "@/redis/verificationCode.redis";
+import {
+	deleteVerificationCode,
+	getVerificationCode,
+	setVerificationCode,
+} from "@/redis/verificationCode.redis";
 import { generateVerificationCode, hashPassword } from "@/utils";
 import Email from "@/utils/emailService";
 import Logger from "@/utils/logger";
-import type { SignupInput } from "@modules/auth/auth.schema";
+import type { SignupInput, VerifyEmailInput } from "@modules/auth/auth.schema";
 
 export const signupService = async (signupInput: SignupInput) => {
 	const existingUser = await findUserbyEmail(signupInput.email);
@@ -25,16 +28,47 @@ export const signupService = async (signupInput: SignupInput) => {
 
 	try {
 		const emailVerificationCode = generateVerificationCode();
-		await new Email(newUser, emailVerificationCode).sendVerificationCode();
+		await new Email(newUser).sendVerificationCode(emailVerificationCode);
 
 		await setVerificationCode(newUser.id, emailVerificationCode);
 	} catch (error) {
-		Logger.error("could not send email");
+		Logger.error("could not send verification email");
 		throw new ServiceUnavailableError("Email service is down");
 	}
 
 	const { password, ...safeUser } = newUser;
 	return safeUser;
+};
+
+export const verifyEmailService = async (
+	verifyEmailInput: VerifyEmailInput,
+) => {
+	const { verificationCode } = verifyEmailInput;
+	const userId = await getVerificationCode(verificationCode);
+
+	if (!userId) {
+		throw new BadRequestError("Invalid or expired verification code");
+	}
+
+	const updatedUser = await prisma.user.update({
+		where: {
+			id: userId,
+		},
+		data: {
+			isVerified: true,
+		},
+	});
+
+	if (updatedUser) {
+		try {
+			await deleteVerificationCode(verificationCode);
+			await new Email(updatedUser).sendWelcome();
+		} catch (error) {
+			Logger.error("could not send welcome email");
+			throw new ServiceUnavailableError("Email service is down");
+		}
+	}
+	return updatedUser;
 };
 
 const findUserbyEmail = async (email: string) => {
