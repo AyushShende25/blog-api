@@ -108,7 +108,7 @@ export const loginService = async (loginInput: LoginInput) => {
   return { access_token, refresh_token, user: safeUser };
 };
 
-export const refreshTokens = async (req: Request) => {
+export const refreshTokensService = async (req: Request) => {
   const refreshToken: string = req.cookies.refresh_token;
   if (!refreshToken) {
     throw new UnAuthorizedError();
@@ -139,13 +139,17 @@ export const refreshTokens = async (req: Request) => {
   }
 };
 
+export const logoutService = async (userId: string) => {
+  await refreshTokenIdStorage.invalidate(userId);
+};
+
 const findUserbyEmail = async (email: string) => {
   return prisma.user.findUnique({
     where: { email },
   });
 };
 
-const findUserbyId = async (id: string) => {
+export const findUserbyId = async (id: string) => {
   return prisma.user.findUnique({
     where: { id },
   });

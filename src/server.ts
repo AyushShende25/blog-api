@@ -5,5 +5,5 @@ import { env } from "@/config/env";
 import Logger from "@/utils/logger";
 
 app.listen(env.PORT, () => {
-	Logger.info(`api running on ${env.PORT}`);
+  Logger.info(`api running on ${env.PORT}`);
 });

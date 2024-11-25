@@ -1,8 +1,10 @@
 import { Router } from "express";
 
+import { Authenticate } from "@/middleware/authenticate.middleware";
 import { validate } from "@/middleware/validateRequest.middleware";
 import {
   loginHandler,
+  logoutHandler,
   refreshTokensHandler,
   signupHandler,
   verifyEmailHandler,
@@ -22,5 +24,7 @@ router.post("/verify-email", validate(verifyEmailSchema), verifyEmailHandler);
 router.post("/login", validate(loginSchema), loginHandler);
 
 router.post("/refresh", refreshTokensHandler);
+
+router.post("/logout", Authenticate, logoutHandler);
 
 export default router;

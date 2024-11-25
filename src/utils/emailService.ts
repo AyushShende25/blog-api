@@ -4,41 +4,41 @@ import { env } from "@/config/env";
 import type { User } from "@prisma/client";
 
 class Email {
-	private to: string;
-	private username: string;
-	private from: string;
+  private to: string;
+  private username: string;
+  private from: string;
 
-	constructor(user: User) {
-		this.to = user.email;
-		this.username = user.username;
-		this.from = `Inkspire - <${env.EMAIL_FROM}>`;
-	}
+  constructor(user: User) {
+    this.to = user.email;
+    this.username = user.username;
+    this.from = `Inkspire - <${env.EMAIL_FROM}>`;
+  }
 
-	newTransport() {
-		return nodemailer.createTransport({
-			host: env.EMAIL_HOST,
-			port: env.EMAIL_PORT,
-			auth: {
-				user: env.EMAIL_USERNAME,
-				pass: env.EMAIL_PASSWORD,
-			},
-		});
-	}
+  newTransport() {
+    return nodemailer.createTransport({
+      host: env.EMAIL_HOST,
+      port: env.EMAIL_PORT,
+      auth: {
+        user: env.EMAIL_USERNAME,
+        pass: env.EMAIL_PASSWORD,
+      },
+    });
+  }
 
-	async send(html: string, subject: string) {
-		const mailOptions = {
-			from: this.from,
-			to: this.to,
-			subject,
-			html,
-		};
-		//create a transport and send email
-		await this.newTransport().sendMail(mailOptions);
-	}
+  async send(html: string, subject: string) {
+    const mailOptions = {
+      from: this.from,
+      to: this.to,
+      subject,
+      html,
+    };
+    //create a transport and send email
+    await this.newTransport().sendMail(mailOptions);
+  }
 
-	async sendVerificationCode(code: string) {
-		await this.send(
-			`    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+  async sendVerificationCode(code: string) {
+    await this.send(
+      `    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
   <h2 style="color: #333333; text-align: center;">Welcome to Inkspire, ${this.username}!</h2>
   <p style="font-size: 16px; color: #555555; text-align: center;">
     We're excited to have you on board! To verify your account, please use the code below:
@@ -60,13 +60,13 @@ class Email {
   </p>
 </div>
       `,
-			"Verify your account details",
-		);
-	}
+      "Verify your account details",
+    );
+  }
 
-	async sendWelcome() {
-		await this.send(
-			`<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+  async sendWelcome() {
+    await this.send(
+      `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
   <h2 style="color: #333333; text-align: center;">Welcome to Inkspire, ${this.username}!</h2>
   <p style="font-size: 16px; color: #555555;">
     We're thrilled to have you on board. Inkspire is your platform to share ideas, connect with like-minded individuals, and bring your creativity to life.
@@ -80,9 +80,9 @@ class Email {
   </p>
 </div>
 `,
-			"welcome to Inkspire",
-		);
-	}
+      "welcome to Inkspire",
+    );
+  }
 }
 
 export default Email;

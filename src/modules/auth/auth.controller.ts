@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
 import { env } from "@/config/env";
-import { UnAuthorizedError } from "@/errors";
+
 import type {
   LoginInput,
   SignupInput,
@@ -10,7 +10,8 @@ import type {
 } from "@modules/auth/auth.schema";
 import {
   loginService,
-  refreshTokens,
+  logoutService,
+  refreshTokensService,
   signupService,
   verifyEmailService,
 } from "@modules/auth/auth.service";
@@ -61,7 +62,7 @@ export const loginHandler = async (
 };
 
 export const refreshTokensHandler = async (req: Request, res: Response) => {
-  const { access_token, refresh_token } = await refreshTokens(req);
+  const { access_token, refresh_token } = await refreshTokensService(req);
 
   res.cookie("access_token", access_token, {
     ...cookieOptions,
@@ -73,4 +74,15 @@ export const refreshTokensHandler = async (req: Request, res: Response) => {
   });
 
   res.status(StatusCodes.OK).json({ message: "new tokens generation success" });
+};
+
+export const logoutHandler = async (req: Request, res: Response) => {
+  await logoutService(req.userId as string);
+
+  res.clearCookie("access_token", { ...cookieOptions, expires: new Date(0) });
+  res.clearCookie("refresh_token", { ...cookieOptions, expires: new Date(0) });
+
+  res.status(StatusCodes.OK).json({
+    message: "user logged out successfully",
+  });
 };
