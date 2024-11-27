@@ -16,9 +16,35 @@ model User {
   updatedAt  DateTime @updatedAt
   role       Role?    @default(USER)
   isVerified Boolean  @default(false)
+  posts      Post[]
 }
 
 enum Role {
   USER
   ADMIN
+}
+
+model Post {
+  id         String     @id @default(uuid())
+  title      String
+  content    String
+  slug       String     @unique
+  authorId   String
+  author     User       @relation(fields: [authorId], references: [id])
+  status     PostStatus @default(DRAFT)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  categories Category[]
+  images     String[]   @default([])
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Category {
+  id    String @id @default(uuid())
+  name  String @unique
+  posts Post[]
 }
