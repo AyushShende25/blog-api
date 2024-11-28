@@ -2,7 +2,10 @@ import type { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
 import type { CreatePostInput } from "@modules/post/post.schema";
-import { createPostService } from "@modules/post/post.service";
+import {
+  createPostService,
+  listPostsService,
+} from "@modules/post/post.service";
 
 export const createPostHandler = async (
   req: Request<{}, {}, CreatePostInput>,
@@ -14,7 +17,21 @@ export const createPostHandler = async (
   });
 };
 
-export const listPostsHandler = async (req: Request, res: Response) => {};
+export const listPostsHandler = async (req: Request, res: Response) => {
+  const posts = await listPostsService();
+
+  if (!posts || posts.length === 0) {
+    res.status(StatusCodes.OK).json({
+      message: "No posts to display",
+      posts: [],
+    });
+    return;
+  }
+
+  res.status(StatusCodes.OK).json({
+    posts,
+  });
+};
 
 export const getPostHandler = async (req: Request, res: Response) => {};
 

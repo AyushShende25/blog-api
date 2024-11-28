@@ -40,3 +40,11 @@ export const createPostService = async (
     throw error;
   }
 };
+
+export const listPostsService = async () => {
+  return await prisma.post.findMany({
+    where: { status: "PUBLISHED" },
+    include: { categories: true, author: { select: { username: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+};
