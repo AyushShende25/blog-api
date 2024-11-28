@@ -1,9 +1,10 @@
 import type { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
-import type { CreatePostInput } from "@modules/post/post.schema";
+import type { CreatePostInput, GetPostInput } from "@modules/post/post.schema";
 import {
   createPostService,
+  getPostBySlugService,
   listPostsService,
 } from "@modules/post/post.service";
 
@@ -33,7 +34,16 @@ export const listPostsHandler = async (req: Request, res: Response) => {
   });
 };
 
-export const getPostHandler = async (req: Request, res: Response) => {};
+export const getPostHandler = async (
+  req: Request<GetPostInput>,
+  res: Response,
+) => {
+  const post = await getPostBySlugService(req.params);
+
+  res.status(StatusCodes.OK).json({
+    post,
+  });
+};
 
 export const updatePostHandler = async (req: Request, res: Response) => {};
 

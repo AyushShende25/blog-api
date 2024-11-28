@@ -21,4 +21,9 @@ export const createPostSchema = z.object({
   }),
 });
 
+export const getPostSchema = z.object({
+  params: z.object({ slug: z.string({ required_error: "slug is required" }) }),
+});
+
 export type CreatePostInput = z.infer<typeof createPostSchema>["body"];
+export type GetPostInput = z.infer<typeof getPostSchema>["params"];

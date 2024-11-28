@@ -1,8 +1,8 @@
 import slugify from "slugify";
 
 import prisma from "@/config/db";
-import { BadRequestError } from "@/errors";
-import type { CreatePostInput } from "@modules/post/post.schema";
+import { BadRequestError, NotFoundError } from "@/errors";
+import type { CreatePostInput, GetPostInput } from "@modules/post/post.schema";
 
 export const createPostService = async (
   createPostInput: CreatePostInput,
@@ -47,4 +47,14 @@ export const listPostsService = async () => {
     include: { categories: true, author: { select: { username: true } } },
     orderBy: { createdAt: "desc" },
   });
+};
+
+export const getPostBySlugService = async (getPostInput: GetPostInput) => {
+  const post = await prisma.post.findFirst({
+    where: { slug: getPostInput.slug },
+  });
+  if (!post) {
+    throw new NotFoundError("post not found");
+  }
+  return post;
 };
