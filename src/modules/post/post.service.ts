@@ -105,6 +105,23 @@ export const updatePostService = async (
   return updatedPost;
 };
 
+export const deletePostService = async (postId: string, authorId: string) => {
+  const existingPost = await findPostById(postId);
+  if (!existingPost) {
+    throw new NotFoundError("post does not exist");
+  }
+
+  if (existingPost.authorId !== authorId) {
+    throw new ForbiddenError("you are not allowed to delete this post");
+  }
+
+  const deletedPost = await prisma.post.delete({
+    where: { id: postId },
+  });
+
+  return deletedPost;
+};
+
 const findPostById = async (postId: string) => {
   return await prisma.post.findUnique({
     where: { id: postId },

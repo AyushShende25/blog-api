@@ -27,13 +27,20 @@ export const getPostSchema = z.object({
   params: z.object({ slug: z.string({ required_error: "slug is required" }) }),
 });
 
+const postIdSchema = z.object({
+  postId: z.string({ required_error: "post id is required" }),
+});
+
 export const updatePostSchema = z.object({
   body: basePostSchema.partial(),
-  params: z.object({
-    postId: z.string({ required_error: "post id is required" }),
-  }),
+  params: postIdSchema,
+});
+
+export const deletePostSchema = z.object({
+  params: postIdSchema,
 });
 
 export type CreatePostInput = z.infer<typeof createPostSchema>["body"];
 export type GetPostInput = z.infer<typeof getPostSchema>["params"];
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;
+export type DeletePostInput = z.infer<typeof updatePostSchema>["params"];

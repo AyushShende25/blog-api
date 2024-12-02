@@ -8,6 +8,7 @@ import type {
 } from "@modules/post/post.schema";
 import {
   createPostService,
+  deletePostService,
   getPostBySlugService,
   listPostsService,
   updatePostService,
@@ -65,4 +66,8 @@ export const updatePostHandler = async (
   });
 };
 
-export const deletePostHandler = async (req: Request, res: Response) => {};
+export const deletePostHandler = async (req: Request, res: Response) => {
+  await deletePostService(req.params.postId, req.userId as string);
+
+  res.status(StatusCodes.NO_CONTENT).json();
+};

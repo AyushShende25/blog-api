@@ -11,6 +11,7 @@ import {
 } from "@modules/post/post.controller";
 import {
   createPostSchema,
+  deletePostSchema,
   getPostSchema,
   updatePostSchema,
 } from "@modules/post/post.schema";
@@ -27,5 +28,6 @@ router.get("/:slug", validate(getPostSchema), getPostHandler);
 router
   .route("/:postId")
   .patch(validate(updatePostSchema), Authenticate, updatePostHandler)
-  .delete(deletePostHandler);
+  .delete(validate(deletePostSchema), Authenticate, deletePostHandler);
+
 export default router;
