@@ -1,11 +1,16 @@
 import type { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
-import type { CreatePostInput, GetPostInput } from "@modules/post/post.schema";
+import type {
+  CreatePostInput,
+  GetPostInput,
+  UpdatePostInput,
+} from "@modules/post/post.schema";
 import {
   createPostService,
   getPostBySlugService,
   listPostsService,
+  updatePostService,
 } from "@modules/post/post.service";
 
 export const createPostHandler = async (
@@ -45,6 +50,19 @@ export const getPostHandler = async (
   });
 };
 
-export const updatePostHandler = async (req: Request, res: Response) => {};
+export const updatePostHandler = async (
+  req: Request<UpdatePostInput["params"], {}, UpdatePostInput["body"]>,
+  res: Response,
+) => {
+  const post = await updatePostService(
+    req.params.postId,
+    req.userId as string,
+    req.body,
+  );
+
+  res.status(StatusCodes.OK).json({
+    post,
+  });
+};
 
 export const deletePostHandler = async (req: Request, res: Response) => {};

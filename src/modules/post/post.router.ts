@@ -9,7 +9,11 @@ import {
   listPostsHandler,
   updatePostHandler,
 } from "@modules/post/post.controller";
-import { createPostSchema, getPostSchema } from "@modules/post/post.schema";
+import {
+  createPostSchema,
+  getPostSchema,
+  updatePostSchema,
+} from "@modules/post/post.schema";
 
 const router = Router();
 
@@ -20,5 +24,8 @@ router
 
 router.get("/:slug", validate(getPostSchema), getPostHandler);
 
-router.route("/:id").patch(updatePostHandler).delete(deletePostHandler);
+router
+  .route("/:postId")
+  .patch(validate(updatePostSchema), Authenticate, updatePostHandler)
+  .delete(deletePostHandler);
 export default router;

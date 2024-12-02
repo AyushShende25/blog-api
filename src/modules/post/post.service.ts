@@ -1,8 +1,12 @@
 import slugify from "slugify";
 
 import prisma from "@/config/db";
-import { BadRequestError, NotFoundError } from "@/errors";
-import type { CreatePostInput, GetPostInput } from "@modules/post/post.schema";
+import { BadRequestError, ForbiddenError, NotFoundError } from "@/errors";
+import type {
+  CreatePostInput,
+  GetPostInput,
+  UpdatePostInput,
+} from "@modules/post/post.schema";
 
 export const createPostService = async (
   createPostInput: CreatePostInput,
@@ -57,4 +61,56 @@ export const getPostBySlugService = async (getPostInput: GetPostInput) => {
     throw new NotFoundError("post not found");
   }
   return post;
+};
+
+export const updatePostService = async (
+  postId: string,
+  authorId: string,
+  updatePostInput: UpdatePostInput["body"],
+) => {
+  const existingPost = await findPostById(postId);
+  if (!existingPost) {
+    throw new NotFoundError("post does not exist");
+  }
+
+  if (existingPost.authorId !== authorId) {
+    throw new ForbiddenError("you are not allowed to update this post");
+  }
+
+  const { title, categories } = updatePostInput;
+  const slug = title ? slugify(title, { lower: true }) : undefined;
+
+  const updatedPost = await prisma.post.update({
+    where: { id: postId },
+    data: {
+      ...updatePostInput,
+      slug,
+      categories: categories
+        ? {
+            disconnect: existingPost.categories.map((category) => ({
+              id: category.id,
+            })),
+            connectOrCreate: categories?.map((category) => ({
+              where: { name: category },
+              create: { name: category },
+            })),
+          }
+        : undefined,
+    },
+    include: {
+      categories: true,
+    },
+  });
+
+  return updatedPost;
+};
+
+const findPostById = async (postId: string) => {
+  return await prisma.post.findUnique({
+    where: { id: postId },
+    include: {
+      categories: true,
+      author: { select: { username: true } },
+    },
+  });
 };
