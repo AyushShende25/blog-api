@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request } from "express";
 import jwt from "jsonwebtoken";
 
 import prisma from "@/config/db";
@@ -24,6 +24,7 @@ import type {
   VerifyEmailInput,
 } from "@modules/auth/auth.schema";
 import type { RefreshTokenPayload } from "@modules/auth/auth.types";
+import { Prisma, type User } from "@prisma/client";
 
 export const signupService = async (signupInput: SignupInput) => {
   const existingUser = await findUserbyEmail(signupInput.email);
@@ -33,15 +34,16 @@ export const signupService = async (signupInput: SignupInput) => {
 
   const hashedPassword = await hashPassword(signupInput.password);
 
-  const newUser = await prisma.user.create({
-    data: {
-      email: signupInput.email,
-      username: signupInput.username,
-      password: hashedPassword,
-    },
-  });
-
+  let newUser: User;
   try {
+    newUser = await prisma.user.create({
+      data: {
+        email: signupInput.email,
+        username: signupInput.username,
+        password: hashedPassword,
+      },
+    });
+
     const emailVerificationCode = generateVerificationCode();
     await new Email(newUser).sendVerificationCode(emailVerificationCode);
 
@@ -50,6 +52,11 @@ export const signupService = async (signupInput: SignupInput) => {
       emailVerificationCode,
     );
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        throw new BadRequestError("username is already taken");
+      }
+    }
     Logger.error("could not send verification email");
     throw new ServiceUnavailableError("Email service is down");
   }
@@ -97,7 +104,10 @@ export const loginService = async (loginInput: LoginInput) => {
     throw new UnAuthorizedError("Invalid Credentials or user is not verified");
   }
 
-  const isPasswordValid = comparePassword(loginInput.password, user.password);
+  const isPasswordValid = await comparePassword(
+    loginInput.password,
+    user.password,
+  );
 
   if (!isPasswordValid) {
     throw new UnAuthorizedError("Invalid credentials");
@@ -139,6 +149,14 @@ export const refreshTokensService = async (req: Request) => {
   }
 };
 
+export const getCurrentUserService = async (userId: string) => {
+  const user = await findUserbyId(userId);
+  if (!user) {
+    throw new UnAuthorizedError();
+  }
+  return user;
+};
+
 export const logoutService = async (userId: string) => {
   await refreshTokenIdStorage.invalidate(userId);
 };
@@ -152,5 +170,8 @@ const findUserbyEmail = async (email: string) => {
 export const findUserbyId = async (id: string) => {
   return prisma.user.findUnique({
     where: { id },
+    omit: {
+      password: true,
+    },
   });
 };

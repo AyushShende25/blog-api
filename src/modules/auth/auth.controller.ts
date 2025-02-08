@@ -9,6 +9,7 @@ import type {
   VerifyEmailInput,
 } from "@modules/auth/auth.schema";
 import {
+  getCurrentUserService,
   loginService,
   logoutService,
   refreshTokensService,
@@ -28,6 +29,7 @@ export const signupHandler = async (
 ) => {
   await signupService(req.body);
   res.status(StatusCodes.CREATED).json({
+    success: true,
     message:
       "User registered successfully. Check your email to verify your account.",
   });
@@ -39,6 +41,7 @@ export const verifyEmailHandler = async (
 ) => {
   await verifyEmailService(req.body);
   res.status(StatusCodes.OK).json({
+    success: true,
     message: "Email successfully verified. You can now log in.",
   });
 };
@@ -51,14 +54,14 @@ export const loginHandler = async (
 
   res.cookie("access_token", access_token, {
     ...cookieOptions,
-    expires: new Date(Date.now() + 1000 * 60 * 5),
+    expires: new Date(Date.now() + 1000 * 60 * 1),
   });
   res.cookie("refresh_token", refresh_token, {
     ...cookieOptions,
     expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
   });
 
-  res.status(200).json({ message: "User login success" });
+  res.status(200).json({ success: true, message: "User login success" });
 };
 
 export const refreshTokensHandler = async (req: Request, res: Response) => {
@@ -66,14 +69,21 @@ export const refreshTokensHandler = async (req: Request, res: Response) => {
 
   res.cookie("access_token", access_token, {
     ...cookieOptions,
-    expires: new Date(Date.now() + 1000 * 60 * 5),
+    expires: new Date(Date.now() + 1000 * 60 * 1),
   });
   res.cookie("refresh_token", refresh_token, {
     ...cookieOptions,
     expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
   });
 
-  res.status(StatusCodes.OK).json({ message: "new tokens generation success" });
+  res
+    .status(StatusCodes.OK)
+    .json({ success: true, message: "new tokens generation successfull" });
+};
+
+export const getCurrentUserHandler = async (req: Request, res: Response) => {
+  const user = await getCurrentUserService(req.userId as string);
+  res.status(StatusCodes.OK).json({ success: true, data: user });
 };
 
 export const logoutHandler = async (req: Request, res: Response) => {
@@ -83,6 +93,7 @@ export const logoutHandler = async (req: Request, res: Response) => {
   res.clearCookie("refresh_token", { ...cookieOptions, expires: new Date(0) });
 
   res.status(StatusCodes.OK).json({
+    success: true,
     message: "user logged out successfully",
   });
 };

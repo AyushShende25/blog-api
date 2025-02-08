@@ -43,4 +43,4 @@ export const deletePostSchema = z.object({
 export type CreatePostInput = z.infer<typeof createPostSchema>["body"];
 export type GetPostInput = z.infer<typeof getPostSchema>["params"];
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;
-export type DeletePostInput = z.infer<typeof updatePostSchema>["params"];
+export type DeletePostInput = z.infer<typeof deletePostSchema>["params"];

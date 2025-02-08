@@ -17,12 +17,16 @@ export const errorHandler: ErrorRequestHandler = (
   _next: NextFunction,
 ) => {
   if (err instanceof BaseError) {
-    res.status(err.StatusCode).json({ errors: err.serializeErrors() });
+    res.status(err.StatusCode).json({
+      success: false,
+      errors: err.serializeErrors(),
+    });
     return;
   }
 
   env.NODE_ENV === "development" && Logger.error(err);
   res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    success: false,
     errors: [{ message: "Something went wrong" }],
   });
 };

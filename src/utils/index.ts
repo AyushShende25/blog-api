@@ -25,7 +25,7 @@ export const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
 };
 
-export const generateTokens = async (user: User) => {
+export const generateTokens = async (user: Omit<User, "password">) => {
   const refreshTokenId = randomUUID();
   const [access_token, refresh_token] = await Promise.all([
     signToken<Partial<ActiveUserData>>(user.id, env.JWT_ACCESS_TOKEN_TTL, {

@@ -15,17 +15,17 @@ import postRouter from "@modules/post/post.router";
 const app: Application = express();
 
 app
-  .use(cors())
+  .use(cors({ origin: "http://localhost:3001", credentials: true }))
   .use(morganMiddleware)
   .use(cookieParser())
   .use(express.json())
-  .get("/health", (_req: Request, res: Response) => {
+  .get("/api/health", (_req: Request, res: Response) => {
     res.json({
       ok: true,
     });
   });
 app.use("/api/auth", authRouter);
-app.use("/api/post", postRouter);
+app.use("/api/posts", postRouter);
 
 app
   .all("*splat", () => {

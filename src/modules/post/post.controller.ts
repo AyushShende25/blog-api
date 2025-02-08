@@ -3,6 +3,7 @@ import { StatusCodes } from "http-status-codes";
 
 import type {
   CreatePostInput,
+  DeletePostInput,
   GetPostInput,
   UpdatePostInput,
 } from "@modules/post/post.schema";
@@ -20,23 +21,17 @@ export const createPostHandler = async (
 ) => {
   const post = await createPostService(req.body, req.userId as string);
   res.status(StatusCodes.CREATED).json({
-    post,
+    success: true,
+    data: post,
   });
 };
 
 export const listPostsHandler = async (req: Request, res: Response) => {
   const posts = await listPostsService();
 
-  if (!posts || posts.length === 0) {
-    res.status(StatusCodes.OK).json({
-      message: "No posts to display",
-      posts: [],
-    });
-    return;
-  }
-
   res.status(StatusCodes.OK).json({
-    posts,
+    success: true,
+    data: posts,
   });
 };
 
@@ -47,7 +42,8 @@ export const getPostHandler = async (
   const post = await getPostBySlugService(req.params);
 
   res.status(StatusCodes.OK).json({
-    post,
+    success: true,
+    data: post,
   });
 };
 
@@ -62,11 +58,15 @@ export const updatePostHandler = async (
   );
 
   res.status(StatusCodes.OK).json({
-    post,
+    success: true,
+    data: post,
   });
 };
 
-export const deletePostHandler = async (req: Request, res: Response) => {
+export const deletePostHandler = async (
+  req: Request<DeletePostInput>,
+  res: Response,
+) => {
   await deletePostService(req.params.postId, req.userId as string);
 
   res.status(StatusCodes.NO_CONTENT).json();

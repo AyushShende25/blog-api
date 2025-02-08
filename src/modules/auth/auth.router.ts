@@ -3,6 +3,7 @@ import { Router } from "express";
 import { Authenticate } from "@/middleware/authenticate.middleware";
 import { validate } from "@/middleware/validateRequest.middleware";
 import {
+  getCurrentUserHandler,
   loginHandler,
   logoutHandler,
   refreshTokensHandler,
@@ -22,6 +23,8 @@ router.post("/signup", validate(signupSchema), signupHandler);
 router.post("/verify-email", validate(verifyEmailSchema), verifyEmailHandler);
 
 router.post("/login", validate(loginSchema), loginHandler);
+
+router.get("/me", Authenticate, getCurrentUserHandler);
 
 router.post("/refresh", refreshTokensHandler);
 
