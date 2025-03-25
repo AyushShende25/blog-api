@@ -5,6 +5,7 @@ import type {
   CreatePostInput,
   DeletePostInput,
   GetPostInput,
+  ListPostsInput,
   UpdatePostInput,
 } from "@modules/post/post.schema";
 import {
@@ -26,12 +27,16 @@ export const createPostHandler = async (
   });
 };
 
-export const listPostsHandler = async (req: Request, res: Response) => {
-  const posts = await listPostsService();
+export const listPostsHandler = async (
+  req: Request<{}, {}, {}, ListPostsInput>,
+  res: Response,
+) => {
+  const { posts, meta } = await listPostsService(req.query);
 
   res.status(StatusCodes.OK).json({
     success: true,
     data: posts,
+    meta,
   });
 };
 

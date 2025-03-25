@@ -1,27 +1,28 @@
 {
-	"$schema": "https://json.schemastore.org/tsconfig",
-	"display": "Node 22",
-	"_version": "22.0.0",
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Node 22",
+  "_version": "22.0.0",
 
-	"compilerOptions": {
-		"lib": ["es2023"],
-		"module": "node16",
-		"target": "es2022",
+  "compilerOptions": {
+    "lib": ["es2023"],
+    "module": "node16",
+    "target": "es2022",
 
-		"strict": true,
-		"esModuleInterop": true,
-		"skipLibCheck": true,
-		"moduleResolution": "node16",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node16",
 
-		"outDir": "./dist",
-		"rootDir": "./src",
+    "outDir": "./dist",
+    "rootDir": "./src",
 
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["src/*"],
-			"@modules/*": ["src/modules/*"]
-		}
-	},
-	"exclude": ["node_modules"],
-	"include": ["src/**/*"]
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@modules/*": ["src/modules/*"]
+    },
+    "resolveJsonModule": true
+  },
+  "exclude": ["node_modules"],
+  "include": ["src/**/*", "src/utils/seed.ts"]
 }

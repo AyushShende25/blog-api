@@ -5,8 +5,10 @@ import { BadRequestError, ForbiddenError, NotFoundError } from "@/errors";
 import type {
   CreatePostInput,
   GetPostInput,
+  ListPostsInput,
   UpdatePostInput,
 } from "@modules/post/post.schema";
+import { PostStatus } from "@prisma/client";
 
 export const createPostService = async (
   createPostInput: CreatePostInput,
@@ -45,17 +47,68 @@ export const createPostService = async (
   }
 };
 
-export const listPostsService = async () => {
-  return await prisma.post.findMany({
-    where: { status: "PUBLISHED" },
-    include: { categories: true, author: { select: { username: true } } },
-    orderBy: { createdAt: "desc" },
+export const listPostsService = async (listPostsInput: ListPostsInput) => {
+  const { page = "1", limit = "10", category, filter, sort } = listPostsInput;
+
+  // Pagination
+  const pageNum = Number.parseInt(page as string) || 1;
+  const limitNum = Number.parseInt(limit as string) || 10;
+  const skip = (pageNum - 1) * limitNum;
+
+  // Sorting
+  let orderBy = {};
+  if (sort) {
+    const [field, order] = sort.split(":");
+    orderBy = { [field]: order === "desc" ? "desc" : "asc" };
+  } else {
+    orderBy = { createdAt: "desc" };
+  }
+
+  // Filtering
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  const where: any = {};
+  if (category) {
+    where.categories = {
+      some: { name: { mode: "insensitive", equals: category } },
+    };
+  }
+  if (filter) {
+    where.OR = [
+      { title: { contains: filter, mode: "insensitive" } },
+      {
+        content: { contains: filter, mode: "insensitive" },
+      },
+    ];
+  }
+  const posts = await prisma.post.findMany({
+    skip,
+    take: limitNum,
+    where: { ...where, status: PostStatus.PUBLISHED },
+    include: {
+      categories: { select: { name: true } },
+      author: { select: { username: true } },
+    },
+    orderBy,
   });
+  const total = await prisma.post.count({
+    where: { ...where, status: PostStatus.PUBLISHED },
+  });
+  const meta = {
+    page: pageNum,
+    limit: limitNum,
+    totalPages: Math.ceil(total / limitNum),
+    totalItems: total,
+  };
+  return { posts, meta };
 };
 
 export const getPostBySlugService = async (getPostInput: GetPostInput) => {
   const post = await prisma.post.findFirst({
     where: { slug: getPostInput.slug },
+    include: {
+      categories: true,
+      author: { select: { username: true } },
+    },
   });
   if (!post) {
     throw new NotFoundError("post not found");

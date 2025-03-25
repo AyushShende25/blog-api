@@ -10,6 +10,7 @@ import { NotFoundError } from "@/errors";
 import { errorHandler } from "@/middleware/errorHandler.middleware";
 import morganMiddleware from "@/middleware/morgan.middleware";
 import authRouter from "@modules/auth/auth.router";
+import categoryRouter from "@modules/categories/category.router";
 import postRouter from "@modules/post/post.router";
 
 const app: Application = express();
@@ -26,6 +27,7 @@ app
   });
 app.use("/api/auth", authRouter);
 app.use("/api/posts", postRouter);
+app.use("/api/categories", categoryRouter);
 
 app
   .all("*splat", () => {

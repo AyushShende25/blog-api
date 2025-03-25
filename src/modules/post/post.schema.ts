@@ -27,6 +27,16 @@ export const getPostSchema = z.object({
   params: z.object({ slug: z.string({ required_error: "slug is required" }) }),
 });
 
+export const listPostsSchema = z.object({
+  query: z.object({
+    page: z.string(),
+    limit: z.string(),
+    category: z.string().optional(),
+    sort: z.string().optional(),
+    filter: z.string().optional(),
+  }),
+});
+
 const postIdSchema = z.object({
   postId: z.string({ required_error: "post id is required" }),
 });
@@ -42,5 +52,6 @@ export const deletePostSchema = z.object({
 
 export type CreatePostInput = z.infer<typeof createPostSchema>["body"];
 export type GetPostInput = z.infer<typeof getPostSchema>["params"];
+export type ListPostsInput = z.infer<typeof listPostsSchema>["query"];
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;
 export type DeletePostInput = z.infer<typeof deletePostSchema>["params"];
