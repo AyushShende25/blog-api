@@ -6,6 +6,7 @@ import express, {
   type Request,
 } from "express";
 
+import "@modules/auth/email.worker";
 import { NotFoundError } from "@/errors";
 import { errorHandler } from "@/middleware/errorHandler.middleware";
 import morganMiddleware from "@/middleware/morgan.middleware";

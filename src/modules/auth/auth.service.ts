@@ -8,6 +8,7 @@ import {
   ServiceUnavailableError,
   UnAuthorizedError,
 } from "@/errors";
+import { addEmailToQueue } from "@/modules/auth/email.producer";
 import * as refreshTokenIdStorage from "@/redis/refreshTokenIdStorage.redis";
 import * as verificationCodeStorage from "@/redis/verificationCodeStorage.redis";
 import {
@@ -16,7 +17,6 @@ import {
   generateVerificationCode,
   hashPassword,
 } from "@/utils";
-import Email from "@/utils/emailService";
 import Logger from "@/utils/logger";
 import type {
   LoginInput,
@@ -45,7 +45,12 @@ export const signupService = async (signupInput: SignupInput) => {
     });
 
     const emailVerificationCode = generateVerificationCode();
-    await new Email(newUser).sendVerificationCode(emailVerificationCode);
+
+    await addEmailToQueue("verification", {
+      email: newUser.email,
+      username: newUser.username,
+      emailVerificationCode,
+    });
 
     await verificationCodeStorage.setVerificationCode(
       newUser.id,
@@ -88,7 +93,11 @@ export const verifyEmailService = async (
   if (updatedUser) {
     try {
       await verificationCodeStorage.deleteVerificationCode(verificationCode);
-      await new Email(updatedUser).sendWelcome();
+
+      await addEmailToQueue("welcome", {
+        email: updatedUser.email,
+        username: updatedUser.username,
+      });
     } catch (error) {
       Logger.error("could not send welcome email");
       throw new ServiceUnavailableError("Email service is down");

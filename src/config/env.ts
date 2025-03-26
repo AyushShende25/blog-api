@@ -17,6 +17,8 @@ const envSchema = z.object({
   JWT_ACCESS_TOKEN_TTL: z.coerce.number(),
   JWT_REFRESH_TOKEN_TTL: z.coerce.number(),
   REDIS_URL: z.string(),
+  REDIS_HOST: z.string().default("localhost"),
+  REDIS_PORT: z.coerce.number().default(6379),
 });
 
 const envVars = envSchema.safeParse(process.env);
