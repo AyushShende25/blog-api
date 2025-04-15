@@ -10,3 +10,7 @@ export const getFiveCategoriesWithHighestPostCountService = async () => {
     },
   });
 };
+
+export const getAllCategoriesService = async () => {
+  return prisma.category.findMany();
+};

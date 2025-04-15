@@ -1,7 +1,10 @@
 import type { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
-import { getFiveCategoriesWithHighestPostCountService } from "@modules/categories/category.service";
+import {
+  getAllCategoriesService,
+  getFiveCategoriesWithHighestPostCountService,
+} from "@modules/categories/category.service";
 
 export const getFeaturedCategoriesHandler = async (
   req: Request,
@@ -13,5 +16,14 @@ export const getFeaturedCategoriesHandler = async (
   res.status(StatusCodes.OK).json({
     success: true,
     data: featuredCategories,
+  });
+};
+
+export const getCategoriesHandler = async (req: Request, res: Response) => {
+  const categories = await getAllCategoriesService();
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    data: categories,
   });
 };

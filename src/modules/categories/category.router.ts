@@ -1,8 +1,14 @@
 import { Router } from "express";
 
-import { getFeaturedCategoriesHandler } from "@modules/categories/category.controller";
+import {
+  getCategoriesHandler,
+  getFeaturedCategoriesHandler,
+} from "@modules/categories/category.controller";
 
 const router = Router();
 
+router.get("/", getCategoriesHandler);
+
 router.get("/featured", getFeaturedCategoriesHandler);
+
 export default router;
