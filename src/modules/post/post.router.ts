@@ -12,9 +12,11 @@ import {
 import {
   createPostSchema,
   deletePostSchema,
+  generatePresignedUrlSchema,
   getPostSchema,
   updatePostSchema,
 } from "@modules/post/post.schema";
+import { generatePresignedUrl } from "./post.utils";
 
 const router = Router();
 
@@ -29,5 +31,12 @@ router
   .route("/:postId")
   .patch(validate(updatePostSchema), Authenticate, updatePostHandler)
   .delete(validate(deletePostSchema), Authenticate, deletePostHandler);
+
+router.post(
+  "/generate-presigned-url",
+  validate(generatePresignedUrlSchema),
+  Authenticate,
+  generatePresignedUrl,
+);
 
 export default router;

@@ -36,6 +36,7 @@ model Post {
   updatedAt  DateTime   @updatedAt
   categories Category[]
   images     String[]   @default([])
+  coverImage String?
 }
 
 enum PostStatus {

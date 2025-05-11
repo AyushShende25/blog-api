@@ -14,23 +14,22 @@ export const createPostService = async (
   createPostInput: CreatePostInput,
   authorId: string,
 ) => {
-  const { categories, content, title, images, status } = createPostInput;
+  const { categories, content, title, images, status, coverImage } =
+    createPostInput;
   const slug = slugify(title, { lower: true });
   try {
     const newPost = await prisma.post.create({
       data: {
         title,
-        content,
+        content: content ?? "",
         slug,
         authorId,
         categories: {
-          connectOrCreate: categories?.map((category) => ({
-            where: { name: category },
-            create: { name: category },
-          })),
+          connect: categories?.map((id) => ({ id })),
         },
         images,
         status,
+        coverImage,
       },
       include: {
         categories: true,
