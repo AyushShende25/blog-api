@@ -9,6 +9,7 @@ import type {
   UpdatePostInput,
 } from "@modules/post/post.schema";
 import { PostStatus } from "@prisma/client";
+import { sanitizeContent } from "./post.utils";
 
 export const createPostService = async (
   createPostInput: CreatePostInput,
@@ -17,11 +18,12 @@ export const createPostService = async (
   const { categories, content, title, images, status, coverImage } =
     createPostInput;
   const slug = slugify(title, { lower: true });
+  const sanitizedContent = sanitizeContent(content ?? "");
   try {
     const newPost = await prisma.post.create({
       data: {
         title,
-        content: content ?? "",
+        content: sanitizedContent,
         slug,
         authorId,
         categories: {

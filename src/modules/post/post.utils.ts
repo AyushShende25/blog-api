@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Request, Response } from "express";
+import sanitizeHtml from "sanitize-html";
 
 import { env } from "@/config/env";
 import { s3 } from "@/config/s3";
@@ -27,4 +28,29 @@ export const generatePresignedUrl = async (
   const fileLink = `https://${BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com/${fileKey}`;
 
   res.json({ success: true, data: { fileLink, url } });
+};
+
+export const sanitizeContent = (content: string) => {
+  return sanitizeHtml(content, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "img",
+      "span",
+      "pre",
+    ]),
+    allowedAttributes: {
+      ...sanitizeHtml.defaults.allowedAttributes,
+      "*": ["class", "style"],
+      img: ["src", "alt", "width", "height"],
+    },
+    allowedClasses: {
+      "*": ["*"],
+    },
+    allowedSchemes: ["http", "https", "mailto", "tel"],
+  });
 };
