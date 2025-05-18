@@ -1,4 +1,4 @@
-import { redisClient } from "@/redis/redisClient";
+import { redisClient } from "@/config/redisClient";
 
 function generateKey(userId: string): string {
   return `user:${userId}`;

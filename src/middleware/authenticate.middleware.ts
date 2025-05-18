@@ -3,8 +3,8 @@ import jwt from "jsonwebtoken";
 
 import { env } from "@/config/env";
 import { UnAuthorizedError } from "@/errors";
-import { findUserbyId } from "@/modules/auth/auth.service";
 import type { ActiveUserData } from "@/modules/auth/auth.types";
+import { findUserbyId } from "@/modules/users/users.service";
 
 declare global {
   namespace Express {

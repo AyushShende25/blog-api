@@ -5,28 +5,46 @@ import express, {
   type Response,
   type Request,
 } from "express";
+import { rateLimit } from "express-rate-limit";
+import helmet from "helmet";
+import hpp from "hpp";
 
-import "@modules/auth/email.worker";
+import { env } from "@/config/env";
 import { NotFoundError } from "@/errors";
 import { errorHandler } from "@/middleware/errorHandler.middleware";
 import morganMiddleware from "@/middleware/morgan.middleware";
 import authRouter from "@modules/auth/auth.router";
 import categoryRouter from "@modules/categories/category.router";
 import postRouter from "@modules/post/post.router";
+import userRouter from "@modules/users/users.router";
+import "@/jobs";
 
 const app: Application = express();
 
 app
-  .use(cors({ origin: "http://localhost:3001", credentials: true }))
+  .use(cors({ origin: env.CLIENT_URL, credentials: true }))
+  .use(helmet())
   .use(morganMiddleware)
   .use(cookieParser())
-  .use(express.json())
+  .use(
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      limit: 100,
+    }),
+  )
+  .use(
+    express.json({
+      limit: "100kb",
+    }),
+  )
+  .use(hpp())
   .get("/api/health", (_req: Request, res: Response) => {
     res.json({
       ok: true,
     });
   });
 app.use("/api/auth", authRouter);
+app.use("/api/users", userRouter);
 app.use("/api/posts", postRouter);
 app.use("/api/categories", categoryRouter);
 

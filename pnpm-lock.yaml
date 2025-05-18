@@ -35,6 +35,15 @@ importers:
       express:
         specifier: ^5.0.1
         version: 5.0.1
+      express-rate-limit:
+        specifier: ^7.5.0
+        version: 7.5.0(express@5.0.1)
+      helmet:
+        specifier: ^8.1.0
+        version: 8.1.0
+      hpp:
+        specifier: ^0.2.3
+        version: 0.2.3
       http-status-codes:
         specifier: ^2.3.0
         version: 2.3.0
@@ -81,6 +90,9 @@ importers:
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.0
+      '@types/hpp':
+        specifier: ^0.2.6
+        version: 0.2.6
       '@types/jsonwebtoken':
         specifier: ^9.0.7
         version: 9.0.8
@@ -954,6 +966,9 @@ packages:
   '@types/express@5.0.0':
     resolution: {integrity: sha512-DvZriSMehGHL1ZNLzi6MidnsDhUZM/x2pRdDIKdwbUNqqwHxMlRdkxtn6/EPKyqKpHqTl/4nRZsRNLpZxZRpPQ==}
 
+  '@types/hpp@0.2.6':
+    resolution: {integrity: sha512-6gn1RuHA1/XFCVCqCkSV+AWy07YwtGg4re4SHhLMoiARTg9XlrbYMtVR+Uvws0VlERXzzcA+1UYvxEV6O+sgPg==}
+
   '@types/http-errors@2.0.4':
     resolution: {integrity: sha512-D0CFMMtydbJAegzOyHjtiKPLlvnm3iTZyZRSZoLq2mRhDdmLfIWOCYPfQJ4cu2erKghU++QvjcUjp/5h7hESpA==}
 
@@ -1376,6 +1391,12 @@ packages:
     resolution: {integrity: sha512-VyhnebXciFV2DESc+p6B+y0LjSm0krU4OgJN44qFAhBY0TJ+1V61tYD2+wHusZ6F9n5K+vl8k0sTy7PEfV4qpg==}
     engines: {node: '>=16.17'}
 
+  express-rate-limit@7.5.0:
+    resolution: {integrity: sha512-eB5zbQh5h+VenMPM3fh+nw1YExi5nMr6HUCR62ELSP11huvxm/Uir1H1QEyTkk5QX6A58pX6NmaTMceKZ0Eodg==}
+    engines: {node: '>= 16'}
+    peerDependencies:
+      express: ^4.11 || 5 || ^5.0.0-beta.1
+
   express@5.0.1:
     resolution: {integrity: sha512-ORF7g6qGnD+YtUG9yx4DFoqCShNMmUKiXuT5oWMHiOvt/4WFbHC6yCwQMTSBMno7AqntNCAzzcnnjowRkTL9eQ==}
     engines: {node: '>= 18'}
@@ -1484,6 +1505,14 @@ packages:
   hasown@2.0.2:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
+
+  helmet@8.1.0:
+    resolution: {integrity: sha512-jOiHyAZsmnr8LqoPGmCjYAaiuWwjAPLgY8ZX2XrmHawt99/u1y6RgrZMTeoPfpUbV96HOalYgz1qzkRbw54Pmg==}
+    engines: {node: '>=18.0.0'}
+
+  hpp@0.2.3:
+    resolution: {integrity: sha512-4zDZypjQcxK/8pfFNR7jaON7zEUpXZxz4viyFmqjb3kWNWAHsLEUmWXcdn25c5l76ISvnD6hbOGO97cXUI3Ryw==}
+    engines: {node: '>=0.10.0'}
 
   htmlparser2@8.0.2:
     resolution: {integrity: sha512-GYdjWKDkbRLkZ5geuHs5NY1puJ+PXwP7+fHPRz06Eirsb9ugf6d8kkXav6ADhcODhFFPMIXyxkxSuMf3D6NCFA==}
@@ -1637,6 +1666,9 @@ packages:
 
   lodash.sortby@4.7.0:
     resolution: {integrity: sha512-HDWXG8isMntAyRF5vZ7xKuEvOhT4AhlRt/3czTSjvGUxjYCBVRQY48ViDHyfYz9VIoBkW4TMGQNapx+l3RUwdA==}
+
+  lodash@4.17.21:
+    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
 
   log-update@6.1.0:
     resolution: {integrity: sha512-9ie8ItPR6tjY5uYJh8K/Zrv/RMZ5VOlOWvtZdEHYSTFKZfIBPQa9tOAEeAWhd+AnIneLJ22w5fjOYtoutpWq5w==}
@@ -3461,6 +3493,10 @@ snapshots:
       '@types/qs': 6.9.18
       '@types/serve-static': 1.15.7
 
+  '@types/hpp@0.2.6':
+    dependencies:
+      '@types/express': 5.0.0
+
   '@types/http-errors@2.0.4': {}
 
   '@types/jsonwebtoken@9.0.8':
@@ -3862,6 +3898,10 @@ snapshots:
       signal-exit: 4.1.0
       strip-final-newline: 3.0.0
 
+  express-rate-limit@7.5.0(express@5.0.1):
+    dependencies:
+      express: 5.0.1
+
   express@5.0.1:
     dependencies:
       accepts: 2.0.0
@@ -4012,6 +4052,13 @@ snapshots:
   hasown@2.0.2:
     dependencies:
       function-bind: 1.1.2
+
+  helmet@8.1.0: {}
+
+  hpp@0.2.3:
+    dependencies:
+      lodash: 4.17.21
+      type-is: 1.6.18
 
   htmlparser2@8.0.2:
     dependencies:
@@ -4177,6 +4224,8 @@ snapshots:
   lodash.once@4.1.1: {}
 
   lodash.sortby@4.7.0: {}
+
+  lodash@4.17.21: {}
 
   log-update@6.1.0:
     dependencies:

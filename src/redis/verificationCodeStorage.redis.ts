@@ -1,4 +1,4 @@
-import { redisClient } from "@/redis/redisClient";
+import { redisClient } from "@/config/redisClient";
 
 const generateVerificationKey = (verificationCode: string) => {
   return `verification-code:${verificationCode}`;

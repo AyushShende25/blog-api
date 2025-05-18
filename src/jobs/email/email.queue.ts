@@ -1,8 +1,8 @@
 import { Queue } from "bullmq";
 
 import { defaultQueueOptions, redisConnection } from "@/config/queue";
+import type { EmailJobData, EmailJobType } from "@/jobs/email/email.types";
 import Logger from "@/utils/logger";
-import type { EmailJobData, EmailJobType } from "@modules/auth/auth.types";
 
 export const emailQueueName = "emailQueue";
 

@@ -4,7 +4,7 @@ import { env } from "@/config/env";
 import {
   getVerificationTemplate,
   getWelcomeTemplate,
-} from "@/utils/emailTemplates";
+} from "@/jobs/email/emailTemplates";
 
 class Email {
   private to: string;
@@ -46,7 +46,7 @@ class Email {
 
   async sendWelcome() {
     const html = getWelcomeTemplate(this.username);
-    await this.send(html, "Welcome to Inkspire!");
+    await this.send(html, "Welcome to Organization-Name!");
   }
 }
 

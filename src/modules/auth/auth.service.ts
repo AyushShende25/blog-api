@@ -1,79 +1,78 @@
 import type { Request } from "express";
 import jwt from "jsonwebtoken";
 
-import prisma from "@/config/db";
 import { env } from "@/config/env";
 import {
   BadRequestError,
   ServiceUnavailableError,
   UnAuthorizedError,
 } from "@/errors";
-import { addEmailToQueue } from "@/modules/auth/email.producer";
+import { addEmailToQueue } from "@/jobs";
+import { findUserbyEmail, findUserbyId } from "@/modules/users/users.service";
 import * as refreshTokenIdStorage from "@/redis/refreshTokenIdStorage.redis";
 import * as verificationCodeStorage from "@/redis/verificationCodeStorage.redis";
-import {
-  comparePassword,
-  generateTokens,
-  generateVerificationCode,
-  hashPassword,
-} from "@/utils";
 import Logger from "@/utils/logger";
+import { createUser, verifyUser } from "@modules/auth/auth.dal";
 import type {
   LoginInput,
   SignupInput,
   VerifyEmailInput,
 } from "@modules/auth/auth.schema";
 import type { RefreshTokenPayload } from "@modules/auth/auth.types";
-import { Prisma, type User } from "@prisma/client";
+import {
+  comparePassword,
+  generateTokens,
+  generateVerificationCode,
+  hashPassword,
+} from "@modules/auth/auth.utils";
+import { Prisma } from "@prisma/client";
 
 export const signupService = async (signupInput: SignupInput) => {
   const existingUser = await findUserbyEmail(signupInput.email);
   if (existingUser) {
     throw new BadRequestError("email already in use");
   }
-
+  const emailVerificationCode = generateVerificationCode();
+  try {
+    await addEmailToQueue("verification", {
+      email: signupInput.email,
+      username: signupInput.username,
+      emailVerificationCode,
+    });
+  } catch (error) {
+    Logger.error("could not send verification email");
+    throw new ServiceUnavailableError("Email service is down");
+  }
   const hashedPassword = await hashPassword(signupInput.password);
 
-  let newUser: User;
   try {
-    newUser = await prisma.user.create({
-      data: {
-        email: signupInput.email,
-        username: signupInput.username,
-        password: hashedPassword,
-      },
-    });
-
-    const emailVerificationCode = generateVerificationCode();
-
-    await addEmailToQueue("verification", {
-      email: newUser.email,
-      username: newUser.username,
-      emailVerificationCode,
+    const newUser = await createUser({
+      email: signupInput.email,
+      username: signupInput.username,
+      password: hashedPassword,
     });
 
     await verificationCodeStorage.setVerificationCode(
       newUser.id,
       emailVerificationCode,
     );
+    const { password, ...safeUser } = newUser;
+    return safeUser;
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === "P2002") {
         throw new BadRequestError("username is already taken");
       }
     }
-    Logger.error("could not send verification email");
-    throw new ServiceUnavailableError("Email service is down");
+    throw new Error("could not register user");
   }
-
-  const { password, ...safeUser } = newUser;
-  return safeUser;
 };
 
 export const verifyEmailService = async (
   verifyEmailInput: VerifyEmailInput,
 ) => {
   const { verificationCode } = verifyEmailInput;
+
   const userId =
     await verificationCodeStorage.getVerificationCode(verificationCode);
 
@@ -81,49 +80,39 @@ export const verifyEmailService = async (
     throw new BadRequestError("Invalid or expired verification code");
   }
 
-  const updatedUser = await prisma.user.update({
-    where: {
-      id: userId,
-    },
-    data: {
-      isVerified: true,
-    },
-  });
+  const verifiedUser = await verifyUser(userId);
 
-  if (updatedUser) {
+  if (verifiedUser) {
+    await verificationCodeStorage.deleteVerificationCode(verificationCode);
     try {
-      await verificationCodeStorage.deleteVerificationCode(verificationCode);
-
       await addEmailToQueue("welcome", {
-        email: updatedUser.email,
-        username: updatedUser.username,
+        email: verifiedUser.email,
+        username: verifiedUser.username,
       });
     } catch (error) {
       Logger.error("could not send welcome email");
-      throw new ServiceUnavailableError("Email service is down");
     }
   }
-  return updatedUser;
+  return verifiedUser;
 };
 
 export const loginService = async (loginInput: LoginInput) => {
-  const user = await findUserbyEmail(loginInput.email);
+  const existingUser = await findUserbyEmail(loginInput.email);
 
-  if (!user || !user.isVerified) {
+  if (!existingUser || !existingUser.isVerified) {
     throw new UnAuthorizedError("Invalid Credentials or user is not verified");
   }
 
   const isPasswordValid = await comparePassword(
     loginInput.password,
-    user.password,
+    existingUser.password,
   );
-
   if (!isPasswordValid) {
     throw new UnAuthorizedError("Invalid credentials");
   }
 
-  const { access_token, refresh_token } = await generateTokens(user);
-  const { password, ...safeUser } = user;
+  const { password, ...safeUser } = existingUser;
+  const { access_token, refresh_token } = await generateTokens(safeUser);
   return { access_token, refresh_token, user: safeUser };
 };
 
@@ -158,29 +147,6 @@ export const refreshTokensService = async (req: Request) => {
   }
 };
 
-export const getCurrentUserService = async (userId: string) => {
-  const user = await findUserbyId(userId);
-  if (!user) {
-    throw new UnAuthorizedError();
-  }
-  return user;
-};
-
 export const logoutService = async (userId: string) => {
   await refreshTokenIdStorage.invalidate(userId);
-};
-
-const findUserbyEmail = async (email: string) => {
-  return prisma.user.findUnique({
-    where: { email },
-  });
-};
-
-export const findUserbyId = async (id: string) => {
-  return prisma.user.findUnique({
-    where: { id },
-    omit: {
-      password: true,
-    },
-  });
 };

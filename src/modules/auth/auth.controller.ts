@@ -1,26 +1,19 @@
 import type { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
-import { env } from "@/config/env";
 import type {
   LoginInput,
   SignupInput,
   VerifyEmailInput,
 } from "@modules/auth/auth.schema";
 import {
-  getCurrentUserService,
   loginService,
   logoutService,
   refreshTokensService,
   signupService,
   verifyEmailService,
 } from "@modules/auth/auth.service";
-
-const cookieOptions = {
-  httpOnly: true,
-  sameSite: true,
-  secure: env.NODE_ENV === "production",
-};
+import { cookieOptions } from "@modules/auth/auth.utils";
 
 export const signupHandler = async (
   req: Request<{}, {}, SignupInput>,
@@ -60,7 +53,9 @@ export const loginHandler = async (
     expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
   });
 
-  res.status(200).json({ success: true, message: "User login success" });
+  res
+    .status(StatusCodes.OK)
+    .json({ success: true, message: "User login success" });
 };
 
 export const refreshTokensHandler = async (req: Request, res: Response) => {
@@ -78,11 +73,6 @@ export const refreshTokensHandler = async (req: Request, res: Response) => {
   res
     .status(StatusCodes.OK)
     .json({ success: true, message: "new tokens generation successfull" });
-};
-
-export const getCurrentUserHandler = async (req: Request, res: Response) => {
-  const user = await getCurrentUserService(req.userId as string);
-  res.status(StatusCodes.OK).json({ success: true, data: user });
 };
 
 export const logoutHandler = async (req: Request, res: Response) => {

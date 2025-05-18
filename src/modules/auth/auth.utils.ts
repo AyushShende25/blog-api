@@ -59,3 +59,8 @@ export const signToken = async <T>(
     },
   );
 };
+export const cookieOptions = {
+  httpOnly: true,
+  sameSite: true,
+  secure: env.NODE_ENV === "production",
+};
