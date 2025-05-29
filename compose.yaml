@@ -1,0 +1,64 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: blog-api
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+    networks:
+      - blog-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: blog-worker
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    command: ["pnpm", "start:worker"]
+    restart: unless-stopped
+    networks:
+      - blog-network
+
+  db:
+    image: postgres:15
+    container_name: blog-db
+    environment:
+      - POSTGRES_USER=blog_admin
+      - POSTGRES_PASSWORD=blog_admin
+      - POSTGRES_DB=blog_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - blog-network
+
+  redis:
+    image: redis/redis-stack-server:7.2.0-v6
+    container_name: blog-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - blog-network
+
+volumes:
+  pgdata:
+  redis_data:
+
+networks:
+  blog-network:

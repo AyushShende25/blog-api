@@ -1,5 +1,5 @@
 import { PostStatus, PrismaClient, Role } from "@prisma/client";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 
 import * as data from "./seedData.json";
 
@@ -52,7 +52,8 @@ async function main() {
     // Create users with hashed passwords
     const users = await Promise.all(
       userData.map(async (user) => {
-        const hashedPassword = await bcrypt.hash(user.password, 10);
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(user.password, salt);
         return prisma.user.create({
           data: {
             email: user.email,

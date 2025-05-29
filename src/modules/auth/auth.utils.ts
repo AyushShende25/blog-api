@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 import { env } from "@/config/env";
@@ -11,7 +11,8 @@ import * as refreshTokenIdStorage from "@/redis/refreshTokenIdStorage.redis";
 import type { User } from "@prisma/client";
 
 export const hashPassword = async (rawPassword: string) => {
-  return await bcrypt.hash(rawPassword, env.SALT_ROUNDS);
+  const salt = await bcrypt.genSalt(env.SALT_ROUNDS);
+  return await bcrypt.hash(rawPassword, salt);
 };
 
 export const comparePassword = async (

@@ -43,16 +43,16 @@ const startAllWorkers = () => {
 };
 
 const shutdown = async () => {
-  Logger.info("Shutting down workers...");
+  Logger.warn("Shutting down workers...");
 
   const closingPromises = [];
   for (const [name, worker] of workers.entries()) {
-    Logger.info(`Closing ${name} worker...`);
+    Logger.warn(`Closing ${name} worker...`);
     closingPromises.push(worker.close());
   }
 
   await Promise.all(closingPromises);
-  Logger.info("All workers closed");
+  Logger.warn("All workers closed");
   process.exit(0);
 };
 
