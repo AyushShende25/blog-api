@@ -5,9 +5,18 @@ const basePostSchema = z.object({
     .string({
       required_error: "Post title is required",
     })
-    .trim(),
-  content: z.string().trim().optional(),
-  categories: z.array(z.string()).min(1, "provide atleast one category"),
+    .trim()
+    .min(1, "Title cannot be empty")
+    .max(200, "Title must be less than 200 characters"),
+  content: z
+    .string()
+    .trim()
+    .max(50000, "Content must be less than 50,000 characters")
+    .optional(),
+  categories: z
+    .array(z.string())
+    .min(1, "provide atleast one category")
+    .max(5, "Maximum 5 categories allowed"),
   images: z
     .array(z.string().url("Invalid image URL"))
     .max(5, { message: "You can attach up to 5 images per post" })
@@ -26,8 +35,8 @@ export const getPostSchema = z.object({
 
 export const listPostsSchema = z.object({
   query: z.object({
-    page: z.string(),
-    limit: z.string(),
+    page: z.string().optional().default("1"),
+    limit: z.string().optional().default("10"),
     category: z.string().optional(),
     sort: z.string().optional(),
     filter: z.string().optional(),

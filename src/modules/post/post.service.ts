@@ -1,15 +1,26 @@
 import slugify from "slugify";
 
 import prisma from "@/config/db";
-import { BadRequestError, ForbiddenError, NotFoundError } from "@/errors";
+import { BadRequestError, NotFoundError } from "@/errors";
 import type {
   CreatePostInput,
   GetPostInput,
   ListPostsInput,
   UpdatePostInput,
 } from "@modules/post/post.schema";
-import { PostStatus } from "@prisma/client";
-import { sanitizeContent } from "./post.utils";
+import {
+  buildOrderby,
+  buildWhereClause,
+  checkPostAuthorization,
+  parseAndValidatePagination,
+  sanitizeContent,
+} from "@modules/post/post.utils";
+import type { Role } from "@prisma/client";
+
+const POST_INCLUDE_CONFIG = {
+  categories: true,
+  author: { select: { username: true, id: true } },
+} as const;
 
 export const createPostService = async (
   createPostInput: CreatePostInput,
@@ -17,95 +28,130 @@ export const createPostService = async (
 ) => {
   const { categories, content, title, images, status, coverImage } =
     createPostInput;
+
   const slug = slugify(title, { lower: true });
-  const sanitizedContent = sanitizeContent(content ?? "");
-  try {
-    const newPost = await prisma.post.create({
-      data: {
-        title,
-        content: sanitizedContent,
-        slug,
-        authorId,
-        categories: {
-          connect: categories?.map((id) => ({ id })),
-        },
-        images,
-        status,
-        coverImage,
-      },
-      include: {
-        categories: true,
-        author: { select: { username: true } },
-      },
-    });
-    return newPost;
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  } catch (error: any) {
-    if (error.code === "P2002") {
-      throw new BadRequestError("A post with a similar slug already exists.");
-    }
-    throw error;
+  const existingSlug = await getPostBySlugService({ slug });
+  if (existingSlug) {
+    throw new BadRequestError("A post with a similar slug already exists");
   }
+
+  const sanitizedContent = sanitizeContent(content ?? "");
+
+  const newPost = await prisma.post.create({
+    data: {
+      title,
+      content: sanitizedContent,
+      slug,
+      authorId,
+      categories: {
+        connect: categories?.map((id) => ({ id })),
+      },
+      images,
+      status,
+      coverImage,
+    },
+    include: POST_INCLUDE_CONFIG,
+  });
+  return newPost;
 };
 
 export const listPostsService = async (listPostsInput: ListPostsInput) => {
-  const { page = "1", limit = "10", category, filter, sort } = listPostsInput;
+  const { page, limit, category, filter, sort } = listPostsInput;
 
-  // Pagination
-  const pageNum = Number.parseInt(page as string) || 1;
-  const limitNum = Number.parseInt(limit as string) || 10;
-  const skip = (pageNum - 1) * limitNum;
+  // Parse pagination parameters
+  const { pageNum, limitNum, skip } = parseAndValidatePagination(page, limit);
 
-  // Sorting
-  let orderBy = {};
-  if (sort) {
-    const [field, order] = sort.split(":");
-    orderBy = { [field]: order === "desc" ? "desc" : "asc" };
-  } else {
-    orderBy = { createdAt: "desc" };
-  }
+  // Build query conditions
+  const orderBy = buildOrderby(sort);
+  const where = buildWhereClause(category, filter);
 
-  // Filtering
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  const where: any = {};
-  if (category) {
-    where.categories = {
-      some: { name: { mode: "insensitive", equals: category } },
-    };
-  }
-  if (filter) {
-    where.OR = [
-      { title: { contains: filter, mode: "insensitive" } },
-      {
-        content: { contains: filter, mode: "insensitive" },
+  const [posts, total] = await Promise.all([
+    prisma.post.findMany({
+      skip,
+      take: limitNum,
+      where,
+      include: {
+        categories: { select: { name: true } },
+        author: { select: { username: true } },
       },
-    ];
-  }
-  const posts = await prisma.post.findMany({
-    skip,
-    take: limitNum,
-    where: { ...where, status: PostStatus.PUBLISHED },
-    include: {
-      categories: { select: { name: true } },
-      author: { select: { username: true } },
-    },
-    orderBy,
-  });
-  const total = await prisma.post.count({
-    where: { ...where, status: PostStatus.PUBLISHED },
-  });
+      orderBy,
+    }),
+    prisma.post.count({ where }),
+  ]);
+
   const meta = {
     page: pageNum,
     limit: limitNum,
     totalPages: Math.ceil(total / limitNum),
     totalItems: total,
+    hasNextPage: pageNum < Math.ceil(total / limitNum),
+    hasPreviousPage: pageNum > 1,
   };
+
   return { posts, meta };
 };
 
-export const getPostBySlugService = async (getPostInput: GetPostInput) => {
-  const post = await prisma.post.findFirst({
-    where: { slug: getPostInput.slug },
+export const updatePostService = async (
+  postId: string,
+  authorId: string,
+  userRole: Role,
+  updatePostInput: UpdatePostInput["body"],
+) => {
+  const existingPost = await findPostById(postId);
+  if (!existingPost) {
+    throw new NotFoundError("post does not exist");
+  }
+
+  checkPostAuthorization(existingPost, authorId, userRole, "update");
+
+  const { title, categories, content, ...otherFields } = updatePostInput;
+
+  const slug = title ? slugify(title, { lower: true }) : undefined;
+  if (slug && slug !== existingPost.slug) {
+    const existingSlug = await getPostBySlugService({ slug });
+    if (existingSlug) {
+      throw new BadRequestError("A post with a similar slug already exists");
+    }
+  }
+
+  const updatedPost = await prisma.post.update({
+    where: { id: postId },
+    data: {
+      ...otherFields,
+      slug,
+      content: content ? sanitizeContent(content) : undefined,
+      categories: categories
+        ? { connect: categories?.map((id) => ({ id })) }
+        : undefined,
+    },
+    include: POST_INCLUDE_CONFIG,
+  });
+
+  return updatedPost;
+};
+
+export const deletePostService = async (
+  postId: string,
+  authorId: string,
+  userRole: Role,
+) => {
+  const existingPost = await findPostById(postId);
+  if (!existingPost) {
+    throw new NotFoundError("post does not exist");
+  }
+
+  checkPostAuthorization(existingPost, authorId, userRole, "delete");
+
+  const deletedPost = await prisma.post.delete({
+    where: { id: postId },
+  });
+
+  return deletedPost;
+};
+
+const findPostById = async (postId: string) => {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
     include: {
       categories: true,
       author: { select: { username: true } },
@@ -117,71 +163,16 @@ export const getPostBySlugService = async (getPostInput: GetPostInput) => {
   return post;
 };
 
-export const updatePostService = async (
-  postId: string,
-  authorId: string,
-  updatePostInput: UpdatePostInput["body"],
-) => {
-  const existingPost = await findPostById(postId);
-  if (!existingPost) {
-    throw new NotFoundError("post does not exist");
-  }
-
-  if (existingPost.authorId !== authorId) {
-    throw new ForbiddenError("you are not allowed to update this post");
-  }
-
-  const { title, categories } = updatePostInput;
-  const slug = title ? slugify(title, { lower: true }) : undefined;
-
-  const updatedPost = await prisma.post.update({
-    where: { id: postId },
-    data: {
-      ...updatePostInput,
-      slug,
-      categories: categories
-        ? {
-            disconnect: existingPost.categories.map((category) => ({
-              id: category.id,
-            })),
-            connectOrCreate: categories?.map((category) => ({
-              where: { name: category },
-              create: { name: category },
-            })),
-          }
-        : undefined,
-    },
-    include: {
-      categories: true,
-    },
-  });
-
-  return updatedPost;
-};
-
-export const deletePostService = async (postId: string, authorId: string) => {
-  const existingPost = await findPostById(postId);
-  if (!existingPost) {
-    throw new NotFoundError("post does not exist");
-  }
-
-  if (existingPost.authorId !== authorId) {
-    throw new ForbiddenError("you are not allowed to delete this post");
-  }
-
-  const deletedPost = await prisma.post.delete({
-    where: { id: postId },
-  });
-
-  return deletedPost;
-};
-
-const findPostById = async (postId: string) => {
-  return await prisma.post.findUnique({
-    where: { id: postId },
+export const getPostBySlugService = async (getPostInput: GetPostInput) => {
+  const post = await prisma.post.findUnique({
+    where: { slug: getPostInput.slug },
     include: {
       categories: true,
       author: { select: { username: true } },
     },
   });
+  if (!post) {
+    throw new NotFoundError("post not found");
+  }
+  return post;
 };

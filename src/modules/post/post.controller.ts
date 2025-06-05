@@ -15,6 +15,7 @@ import {
   listPostsService,
   updatePostService,
 } from "@modules/post/post.service";
+import type { Role } from "@prisma/client";
 
 export const createPostHandler = async (
   req: Request<{}, {}, CreatePostInput>,
@@ -59,6 +60,7 @@ export const updatePostHandler = async (
   const post = await updatePostService(
     req.params.postId,
     req.userId as string,
+    req.role as Role,
     req.body,
   );
 
@@ -72,7 +74,11 @@ export const deletePostHandler = async (
   req: Request<DeletePostInput>,
   res: Response,
 ) => {
-  await deletePostService(req.params.postId, req.userId as string);
+  await deletePostService(
+    req.params.postId,
+    req.userId as string,
+    req.role as Role,
+  );
 
   res.status(StatusCodes.NO_CONTENT).json();
 };

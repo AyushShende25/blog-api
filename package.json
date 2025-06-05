@@ -4,10 +4,10 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsup --watch --onSuccess \"node dist/server.js\"",
-    "dev:worker": "tsup src/jobs/worker.ts --watch --onSuccess \"node dist/jobs/worker.js\"",
+    "dev:worker": "tsup --watch --onSuccess \"node dist/jobs/worker.js\"",
     "start": "node dist/server.js",
     "start:worker": "node dist/jobs/worker.js",
-    "build": "tsup src/server.ts src/jobs/worker.ts",
+    "build": "tsup",
     "clean": "rm -rf dist",
     "format": "biome check --write ./src",
     "prepare": "husky || true"

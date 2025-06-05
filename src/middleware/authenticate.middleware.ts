@@ -5,11 +5,13 @@ import { env } from "@/config/env";
 import { UnAuthorizedError } from "@/errors";
 import type { ActiveUserData } from "@/modules/auth/auth.types";
 import { findUserbyId } from "@/modules/users/users.service";
+import type { Role } from "@prisma/client";
 
 declare global {
   namespace Express {
     interface Request {
       userId?: string;
+      role?: Role;
     }
   }
 }
@@ -40,6 +42,6 @@ export const Authenticate = async (
   }
 
   req.userId = user.id;
-
+  req.role = user.role;
   next();
 };

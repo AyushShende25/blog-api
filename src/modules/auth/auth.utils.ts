@@ -31,6 +31,7 @@ export const generateTokens = async (user: Omit<User, "password">) => {
   const [access_token, refresh_token] = await Promise.all([
     signToken<Partial<ActiveUserData>>(user.id, env.JWT_ACCESS_TOKEN_TTL, {
       email: user.email,
+      role: user.role,
     }),
     signToken<Partial<RefreshTokenPayload>>(
       user.id,

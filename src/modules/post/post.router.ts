@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { Authenticate } from "@/middleware/authenticate.middleware";
+import { authorize } from "@/middleware/authorize.middleware";
 import { validate } from "@/middleware/validateRequest.middleware";
 import {
   createPostHandler,
@@ -29,8 +30,18 @@ router.get("/:slug", validate(getPostSchema), getPostHandler);
 
 router
   .route("/:postId")
-  .patch(validate(updatePostSchema), Authenticate, updatePostHandler)
-  .delete(validate(deletePostSchema), Authenticate, deletePostHandler);
+  .patch(
+    validate(updatePostSchema),
+    Authenticate,
+    authorize("ADMIN", "USER"),
+    updatePostHandler,
+  )
+  .delete(
+    validate(deletePostSchema),
+    Authenticate,
+    authorize("ADMIN", "USER"),
+    deletePostHandler,
+  );
 
 router.post(
   "/generate-presigned-url",
