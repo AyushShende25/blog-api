@@ -15,7 +15,7 @@ import {
   parseAndValidatePagination,
   sanitizeContent,
 } from "@modules/post/post.utils";
-import type { Role } from "@prisma/client";
+import type { PostStatus, Role } from "@prisma/client";
 
 const POST_INCLUDE_CONFIG = {
   categories: true,
@@ -175,4 +175,16 @@ export const getPostBySlugService = async (getPostInput: GetPostInput) => {
     throw new NotFoundError("post not found");
   }
   return post;
+};
+
+export const getUserPostsService = async (
+  authorId: string,
+  status: PostStatus,
+) => {
+  const posts = await prisma.post.findMany({
+    where: { status, authorId },
+    include: { categories: true },
+  });
+
+  return posts;
 };

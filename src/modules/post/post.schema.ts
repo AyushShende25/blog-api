@@ -33,6 +33,14 @@ export const getPostSchema = z.object({
   params: z.object({ slug: z.string({ required_error: "slug is required" }) }),
 });
 
+export const getUserPostsSchema = z.object({
+  query: z.object({
+    status: z.enum(["DRAFT", "PUBLISHED"], {
+      message: "status is required PUBLISHED or DRAFT",
+    }),
+  }),
+});
+
 export const listPostsSchema = z.object({
   query: z.object({
     page: z.string().optional().default("1"),
@@ -61,10 +69,17 @@ export const generatePresignedUrlSchema = z.object({
 });
 
 export type CreatePostInput = z.infer<typeof createPostSchema>["body"];
+
 export type GetPostInput = z.infer<typeof getPostSchema>["params"];
+
 export type ListPostsInput = z.infer<typeof listPostsSchema>["query"];
+
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;
+
 export type DeletePostInput = z.infer<typeof deletePostSchema>["params"];
+
 export type GeneratePresignedUrlInput = z.infer<
   typeof generatePresignedUrlSchema
 >["body"];
+
+export type GetUserPostsInput = z.infer<typeof getUserPostsSchema>["query"];

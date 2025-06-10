@@ -5,6 +5,7 @@ import type {
   CreatePostInput,
   DeletePostInput,
   GetPostInput,
+  GetUserPostsInput,
   ListPostsInput,
   UpdatePostInput,
 } from "@modules/post/post.schema";
@@ -12,6 +13,7 @@ import {
   createPostService,
   deletePostService,
   getPostBySlugService,
+  getUserPostsService,
   listPostsService,
   updatePostService,
 } from "@modules/post/post.service";
@@ -81,4 +83,18 @@ export const deletePostHandler = async (
   );
 
   res.status(StatusCodes.NO_CONTENT).json();
+};
+
+export const getUserPosts = async (
+  req: Request<{}, {}, {}, GetUserPostsInput>,
+  res: Response,
+) => {
+  const posts = await getUserPostsService(
+    req.userId as string,
+    req.query.status,
+  );
+  res.status(StatusCodes.OK).json({
+    success: true,
+    data: posts,
+  });
 };

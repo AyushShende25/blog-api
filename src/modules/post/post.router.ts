@@ -7,6 +7,7 @@ import {
   createPostHandler,
   deletePostHandler,
   getPostHandler,
+  getUserPosts,
   listPostsHandler,
   updatePostHandler,
 } from "@modules/post/post.controller";
@@ -15,6 +16,7 @@ import {
   deletePostSchema,
   generatePresignedUrlSchema,
   getPostSchema,
+  getUserPostsSchema,
   updatePostSchema,
 } from "@modules/post/post.schema";
 import { generatePresignedUrl } from "./post.utils";
@@ -25,6 +27,8 @@ router
   .route("/")
   .post(validate(createPostSchema), Authenticate, createPostHandler)
   .get(listPostsHandler);
+
+router.get("/user", validate(getUserPostsSchema), Authenticate, getUserPosts);
 
 router.get("/:slug", validate(getPostSchema), getPostHandler);
 
