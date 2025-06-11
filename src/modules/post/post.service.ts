@@ -30,7 +30,7 @@ export const createPostService = async (
     createPostInput;
 
   const slug = slugify(title, { lower: true });
-  const existingSlug = await getPostBySlugService({ slug });
+  const existingSlug = await prisma.post.findUnique({ where: { slug } });
   if (existingSlug) {
     throw new BadRequestError("A post with a similar slug already exists");
   }
@@ -108,7 +108,7 @@ export const updatePostService = async (
 
   const slug = title ? slugify(title, { lower: true }) : undefined;
   if (slug && slug !== existingPost.slug) {
-    const existingSlug = await getPostBySlugService({ slug });
+    const existingSlug = await prisma.post.findUnique({ where: { slug } });
     if (existingSlug) {
       throw new BadRequestError("A post with a similar slug already exists");
     }
