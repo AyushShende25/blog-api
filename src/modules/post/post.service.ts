@@ -97,7 +97,7 @@ export const updatePostService = async (
   userRole: Role,
   updatePostInput: UpdatePostInput["body"],
 ) => {
-  const existingPost = await findPostById(postId);
+  const existingPost = await findPostByIdService(postId);
   if (!existingPost) {
     throw new NotFoundError("post does not exist");
   }
@@ -135,7 +135,7 @@ export const deletePostService = async (
   authorId: string,
   userRole: Role,
 ) => {
-  const existingPost = await findPostById(postId);
+  const existingPost = await findPostByIdService(postId);
   if (!existingPost) {
     throw new NotFoundError("post does not exist");
   }
@@ -149,18 +149,14 @@ export const deletePostService = async (
   return deletedPost;
 };
 
-const findPostById = async (postId: string) => {
-  const post = await prisma.post.findUnique({
+export const findPostByIdService = (postId: string) => {
+  return prisma.post.findUnique({
     where: { id: postId },
     include: {
       categories: true,
       author: { select: { username: true } },
     },
   });
-  if (!post) {
-    throw new NotFoundError("post not found");
-  }
-  return post;
 };
 
 export const getPostBySlugService = async (getPostInput: GetPostInput) => {

@@ -51,7 +51,7 @@ export const listPostsSchema = z.object({
   }),
 });
 
-const postIdSchema = z.object({
+export const postIdSchema = z.object({
   postId: z.string({ required_error: "post id is required" }),
 });
 

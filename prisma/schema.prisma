@@ -17,6 +17,7 @@ model User {
   role       Role     @default(USER)
   isVerified Boolean  @default(false)
   posts      Post[]
+  savedPosts Post[]   @relation("SavedPosts")
 }
 
 enum Role {
@@ -37,6 +38,7 @@ model Post {
   categories Category[]
   images     String[]   @default([])
   coverImage String?
+  savedBy    User[]     @relation("SavedPosts")
 }
 
 enum PostStatus {
