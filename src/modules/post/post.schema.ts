@@ -64,6 +64,10 @@ export const deletePostSchema = z.object({
   params: postIdSchema,
 });
 
+export const getPostByIdSchema = z.object({
+  params: postIdSchema,
+});
+
 export const generatePresignedUrlSchema = z.object({
   body: z.object({ filename: z.string(), filetype: z.string() }),
 });
@@ -83,3 +87,5 @@ export type GeneratePresignedUrlInput = z.infer<
 >["body"];
 
 export type GetUserPostsInput = z.infer<typeof getUserPostsSchema>["query"];
+
+export type GetPostByIdInput = z.infer<typeof getPostByIdSchema>["params"];

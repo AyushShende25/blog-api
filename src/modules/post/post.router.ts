@@ -6,6 +6,7 @@ import { validate } from "@/middleware/validateRequest.middleware";
 import {
   createPostHandler,
   deletePostHandler,
+  getPostByIdHandler,
   getPostHandler,
   getUserPosts,
   listPostsHandler,
@@ -15,6 +16,7 @@ import {
   createPostSchema,
   deletePostSchema,
   generatePresignedUrlSchema,
+  getPostByIdSchema,
   getPostSchema,
   getUserPostsSchema,
   updatePostSchema,
@@ -30,10 +32,11 @@ router
 
 router.get("/user", validate(getUserPostsSchema), Authenticate, getUserPosts);
 
-router.get("/:slug", validate(getPostSchema), getPostHandler);
+router.get("/slug/:slug", validate(getPostSchema), getPostHandler);
 
 router
-  .route("/:postId")
+  .route("/id/:postId")
+  .get(validate(getPostByIdSchema), getPostByIdHandler)
   .patch(
     validate(updatePostSchema),
     Authenticate,

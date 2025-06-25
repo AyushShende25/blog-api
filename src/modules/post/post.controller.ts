@@ -1,9 +1,11 @@
 import type { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
+import { NotFoundError } from "@/errors";
 import type {
   CreatePostInput,
   DeletePostInput,
+  GetPostByIdInput,
   GetPostInput,
   GetUserPostsInput,
   ListPostsInput,
@@ -12,6 +14,7 @@ import type {
 import {
   createPostService,
   deletePostService,
+  findPostByIdService,
   getPostBySlugService,
   getUserPostsService,
   listPostsService,
@@ -96,5 +99,19 @@ export const getUserPosts = async (
   res.status(StatusCodes.OK).json({
     success: true,
     data: posts,
+  });
+};
+
+export const getPostByIdHandler = async (
+  req: Request<GetPostByIdInput>,
+  res: Response,
+) => {
+  const post = await findPostByIdService(req.params.postId);
+
+  if (!post) throw new NotFoundError("Post not found");
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    data: post,
   });
 };
