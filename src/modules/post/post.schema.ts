@@ -69,7 +69,16 @@ export const getPostByIdSchema = z.object({
 });
 
 export const generatePresignedUrlSchema = z.object({
-  body: z.object({ filename: z.string(), filetype: z.string() }),
+  body: z.object({
+    filename: z.string(),
+    filetype: z.enum(
+      ["image/jpeg", "image/png", "image/webp", "image/gif", "image/apng"],
+      {
+        message: "unsupported image format",
+      },
+    ),
+    imageType: z.enum(["post", "avatar"]).optional().default("post"),
+  }),
 });
 
 export type CreatePostInput = z.infer<typeof createPostSchema>["body"];

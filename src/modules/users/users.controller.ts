@@ -4,12 +4,14 @@ import { StatusCodes } from "http-status-codes";
 import type {
   SavePostInput,
   UnsavePostInput,
+  UpdateAvatarInput,
 } from "@modules/users/users.schema";
 import {
   getCurrentUserService,
   getSavedPostsService,
   savePostService,
   unsavePostService,
+  updateAvatarService,
 } from "@modules/users/users.service";
 
 export const getCurrentUserHandler = async (req: Request, res: Response) => {
@@ -36,4 +38,15 @@ export const unsavePostHandler = async (
 ) => {
   await unsavePostService(req.userId as string, req.params.postId);
   res.status(StatusCodes.OK).json({ success: true, message: "un-saved post" });
+};
+
+export const updateAvatarHandler = async (
+  req: Request<{}, {}, UpdateAvatarInput>,
+  res: Response,
+) => {
+  const user = await updateAvatarService(
+    req.userId as string,
+    req.body.avatarUrl,
+  );
+  res.status(StatusCodes.OK).json({ success: true, data: user });
 };

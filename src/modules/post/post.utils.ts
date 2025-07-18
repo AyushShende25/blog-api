@@ -6,26 +6,33 @@ import sanitizeHtml from "sanitize-html";
 
 import { env } from "@/config/env";
 import { s3 } from "@/config/s3";
-import { ForbiddenError } from "@/errors";
+import { BadRequestError, ForbiddenError } from "@/errors";
 import type { GeneratePresignedUrlInput } from "@modules/post/post.schema";
 import { PostStatus, type Prisma, Role } from "@prisma/client";
+
+const PRESIGNED_URL_EXPIRY_SECONDS = 5 * 60;
 
 export const generatePresignedUrl = async (
   req: Request<{}, {}, GeneratePresignedUrlInput>,
   res: Response,
 ) => {
-  const { filename, filetype } = req.body;
-  const uniquePrefix = randomUUID();
-  const fileKey = `postimages/${uniquePrefix}-${filename}`;
+  const { filename, filetype, imageType } = req.body;
+  const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
 
+  const uniquePrefix = randomUUID();
+  const folderName = imageType === "avatar" ? "avatars" : "postimages";
+  const fileKey = `${folderName}/${uniquePrefix}-${sanitizedFilename}`;
   const BUCKET_NAME = env.AWS_S3_BUCKET_NAME;
+
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: fileKey,
     ContentType: filetype,
   });
 
-  const url = await getSignedUrl(s3, command, { expiresIn: 5 * 60 });
+  const url = await getSignedUrl(s3, command, {
+    expiresIn: PRESIGNED_URL_EXPIRY_SECONDS,
+  });
 
   const fileLink = `https://${BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com/${fileKey}`;
 

@@ -16,6 +16,7 @@ model User {
   updatedAt  DateTime @updatedAt
   role       Role     @default(USER)
   isVerified Boolean  @default(false)
+  avatarUrl  String?
   posts      Post[]
   savedPosts Post[]   @relation("SavedPosts")
 }

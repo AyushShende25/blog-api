@@ -68,3 +68,21 @@ export const unsavePostService = async (userId: string, postId: string) => {
     },
   });
 };
+
+export const updateAvatarService = async (
+  userId: string,
+  newAvatarUrl: string,
+) => {
+  const user = await findUserbyId(userId);
+  if (!user) {
+    throw new NotFoundError("user not found");
+  }
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { avatarUrl: newAvatarUrl },
+    omit: {
+      password: true,
+    },
+  });
+  return updatedUser;
+};
