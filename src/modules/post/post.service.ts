@@ -15,7 +15,7 @@ import {
   parseAndValidatePagination,
   sanitizeContent,
 } from "@modules/post/post.utils";
-import type { PostStatus, Role } from "@prisma/client";
+import { PostStatus, type Role } from "@prisma/client";
 
 const POST_INCLUDE_CONFIG = {
   categories: true,
@@ -63,7 +63,7 @@ export const listPostsService = async (listPostsInput: ListPostsInput) => {
 
   // Build query conditions
   const orderBy = buildOrderby(sort);
-  const where = buildWhereClause(category, filter);
+  const where = buildWhereClause(PostStatus.PUBLISHED, category, filter);
 
   const [posts, total] = await Promise.all([
     prisma.post.findMany({
@@ -183,4 +183,37 @@ export const getUserPostsService = async (
   });
 
   return posts;
+};
+
+export const getAllPostsService = async (listPostsInput: ListPostsInput) => {
+  const { page, limit, category, filter, sort, status } = listPostsInput;
+  const { pageNum, limitNum, skip } = parseAndValidatePagination(page, limit);
+
+  const orderBy = buildOrderby(sort);
+  const where = buildWhereClause(status, category, filter);
+
+  const [posts, total] = await Promise.all([
+    prisma.post.findMany({
+      skip,
+      take: limitNum,
+      where,
+      include: {
+        categories: { select: { name: true } },
+        author: { select: { username: true } },
+      },
+      orderBy,
+    }),
+    prisma.post.count({ where }),
+  ]);
+
+  const meta = {
+    page: pageNum,
+    limit: limitNum,
+    totalPages: Math.ceil(total / limitNum),
+    totalItems: total,
+    hasNextPage: pageNum < Math.ceil(total / limitNum),
+    hasPreviousPage: pageNum > 1,
+  };
+
+  return { posts, meta };
 };

@@ -1,6 +1,8 @@
 import prisma from "@/config/db";
 import { NotFoundError, UnAuthorizedError } from "@/errors";
 import { findPostByIdService } from "@modules/post/post.service";
+import type { Prisma } from "@prisma/client";
+import type { GetAllUsersInput } from "./users.schema";
 
 export const getCurrentUserService = async (userId: string) => {
   const user = await findUserbyId(userId);
@@ -85,4 +87,51 @@ export const updateAvatarService = async (
     },
   });
   return updatedUser;
+};
+
+export const getAllUsersService = async (
+  getAllUsersInput: GetAllUsersInput,
+) => {
+  const { limit, page, filter } = getAllUsersInput;
+
+  const limitNum = Number.parseInt(limit) || 10;
+  const pageNum = Number.parseInt(page) || 1;
+  const skip = (pageNum - 1) * limitNum;
+
+  const where: Prisma.UserWhereInput = filter
+    ? {
+        OR: [
+          { username: { contains: filter, mode: "insensitive" } },
+          { email: { contains: filter, mode: "insensitive" } },
+        ],
+      }
+    : {};
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      skip,
+      take: limitNum,
+      where,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  const meta = {
+    page,
+    limit,
+    totalPages: Math.ceil(total / limitNum),
+    totalItems: total,
+    hasNextPage: pageNum < Math.ceil(total / limitNum),
+    hasPreviousPage: pageNum > 1,
+  };
+
+  return { users, meta };
 };

@@ -8,7 +8,7 @@ import { env } from "@/config/env";
 import { s3 } from "@/config/s3";
 import { BadRequestError, ForbiddenError } from "@/errors";
 import type { GeneratePresignedUrlInput } from "@modules/post/post.schema";
-import { PostStatus, type Prisma, Role } from "@prisma/client";
+import { type PostStatus, type Prisma, Role } from "@prisma/client";
 
 const PRESIGNED_URL_EXPIRY_SECONDS = 5 * 60;
 
@@ -95,12 +95,15 @@ export const buildOrderby = (
 };
 
 export const buildWhereClause = (
+  status?: PostStatus,
   category?: string,
   filter?: string,
 ): Prisma.PostWhereInput => {
-  const where: Prisma.PostWhereInput = {
-    status: PostStatus.PUBLISHED,
-  };
+  const where: Prisma.PostWhereInput = {};
+
+  if (status) {
+    where.status = { equals: status };
+  }
 
   if (category) {
     where.categories = {

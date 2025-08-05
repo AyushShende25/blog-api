@@ -48,6 +48,7 @@ export const listPostsSchema = z.object({
     category: z.string().optional(),
     sort: z.string().optional(),
     filter: z.string().optional(),
+    status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
   }),
 });
 

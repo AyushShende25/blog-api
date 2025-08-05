@@ -2,11 +2,13 @@ import type { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
 import type {
+  GetAllUsersInput,
   SavePostInput,
   UnsavePostInput,
   UpdateAvatarInput,
 } from "@modules/users/users.schema";
 import {
+  getAllUsersService,
   getCurrentUserService,
   getSavedPostsService,
   savePostService,
@@ -49,4 +51,16 @@ export const updateAvatarHandler = async (
     req.body.avatarUrl,
   );
   res.status(StatusCodes.OK).json({ success: true, data: user });
+};
+
+export const getAllUsersHandler = async (
+  req: Request<{}, {}, {}, GetAllUsersInput>,
+  res: Response,
+) => {
+  console.log("Raw query:", req.query);
+  console.log("Query keys:", Object.keys(req.query));
+  console.log("Query values:", Object.values(req.query));
+  const { users, meta } = await getAllUsersService(req.query);
+
+  res.status(StatusCodes.OK).json({ success: true, data: users, meta });
 };

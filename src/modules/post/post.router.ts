@@ -6,10 +6,11 @@ import { validate } from "@/middleware/validateRequest.middleware";
 import {
   createPostHandler,
   deletePostHandler,
+  getAllPostsHandler,
   getPostByIdHandler,
   getPostHandler,
   getUserPosts,
-  listPostsHandler,
+  listPublishedPostsHandler,
   updatePostHandler,
 } from "@modules/post/post.controller";
 import {
@@ -28,7 +29,7 @@ const router = Router();
 router
   .route("/")
   .post(validate(createPostSchema), Authenticate, createPostHandler)
-  .get(listPostsHandler);
+  .get(listPublishedPostsHandler);
 
 router.get("/user", validate(getUserPostsSchema), Authenticate, getUserPosts);
 
@@ -57,4 +58,5 @@ router.post(
   generatePresignedUrl,
 );
 
+router.get("/admin", Authenticate, authorize("ADMIN"), getAllPostsHandler);
 export default router;

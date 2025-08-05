@@ -4,6 +4,7 @@ import { Authenticate } from "@/middleware/authenticate.middleware";
 import { authorize } from "@/middleware/authorize.middleware";
 import { validate } from "@/middleware/validateRequest.middleware";
 import {
+  getAllUsersHandler,
   getCurrentUserHandler,
   getSavedPostsHandler,
   savePosthandler,
@@ -11,6 +12,7 @@ import {
   updateAvatarHandler,
 } from "@modules/users/users.controller";
 import {
+  getAllUsersSchema,
   savePostSchema,
   unsavePostSchema,
   updateAvatarSchema,
@@ -19,11 +21,14 @@ import {
 const router: Router = Router();
 
 router.get("/me", Authenticate, getCurrentUserHandler);
+
 router.get("/saved", Authenticate, getSavedPostsHandler);
+
 router
   .route("/saved/:postId")
   .post(validate(savePostSchema), Authenticate, savePosthandler)
   .delete(validate(unsavePostSchema), Authenticate, unsavePostHandler);
+
 router.post(
   "/update-avatar",
   validate(updateAvatarSchema),
@@ -31,4 +36,13 @@ router.post(
   authorize("USER"),
   updateAvatarHandler,
 );
+
+router.get(
+  "/admin",
+  validate(getAllUsersSchema),
+  Authenticate,
+  authorize("ADMIN"),
+  getAllUsersHandler,
+);
+
 export default router;

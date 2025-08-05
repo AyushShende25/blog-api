@@ -15,6 +15,7 @@ import {
   createPostService,
   deletePostService,
   findPostByIdService,
+  getAllPostsService,
   getPostBySlugService,
   getUserPostsService,
   listPostsService,
@@ -33,7 +34,7 @@ export const createPostHandler = async (
   });
 };
 
-export const listPostsHandler = async (
+export const listPublishedPostsHandler = async (
   req: Request<{}, {}, {}, ListPostsInput>,
   res: Response,
 ) => {
@@ -113,5 +114,18 @@ export const getPostByIdHandler = async (
   res.status(StatusCodes.OK).json({
     success: true,
     data: post,
+  });
+};
+
+export const getAllPostsHandler = async (
+  req: Request<{}, {}, {}, ListPostsInput>,
+  res: Response,
+) => {
+  const { posts, meta } = await getAllPostsService(req.query);
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    data: posts,
+    meta,
   });
 };
