@@ -1,7 +1,9 @@
-import { type Options, defineConfig } from "tsup";
+import { defineConfig } from "tsup";
 
-export default defineConfig((options: Options) => ({
-  entryPoints: ["src/server.ts", "src/jobs/worker.ts"],
-  clean: true,
-  ...options,
-}));
+export default defineConfig({
+	entryPoints: ["src/server.ts", "src/jobs/worker.ts"],
+	clean: true,
+	outDir: "dist",
+	ignoreWatch: ["logs"],
+	format: "esm",
+});
