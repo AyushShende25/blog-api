@@ -1,24 +1,42 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
-  id         String   @id @default(uuid())
-  email      String   @unique
-  username   String   @unique @db.VarChar(255)
-  password   String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  role       Role     @default(USER)
-  isVerified Boolean  @default(false)
-  avatarUrl  String?
-  posts      Post[]
-  savedPosts Post[]   @relation("SavedPosts")
+  id            String         @id @default(uuid())
+  email         String         @unique
+  username      String         @unique
+  password      String
+  isVerified    Boolean        @default(false)
+  avatar        String?
+  bio           String?
+  socialLinks   Json?
+  role          Role           @default(USER)
+  status        UserStatus     @default(ACTIVE)
+  posts         Post[]
+  savedPosts    Post[]         @relation("SavedPosts")
+  likes         Like[]
+  comments      Comment[]
+  followers     Follow[]       @relation("UserFollowers")
+  following     Follow[]       @relation("UserFollows")
+  media         Media[]
+  notifications Notification[] @relation("UserNotifications")
+  deletedAt     DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
 }
 
 enum Role {
@@ -27,19 +45,31 @@ enum Role {
 }
 
 model Post {
-  id         String     @id @default(uuid())
-  title      String
-  content    String
-  slug       String     @unique
-  authorId   String
-  author     User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  status     PostStatus @default(DRAFT)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  categories Category[]
-  images     String[]   @default([])
-  coverImage String?
-  savedBy    User[]     @relation("SavedPosts")
+  id              String     @id @default(uuid())
+  slug            String     @unique
+  title           String
+  content         String
+  excerpt         String?
+  metaTitle       String?
+  metaDescription String?
+  ogImage         String?
+  authorId        String?
+  author          User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorUsername  String?
+  status          PostStatus @default(DRAFT)
+  coverImage      String?
+  publishedAt     DateTime?
+  categories      Category[]
+  tags            Tag[]
+  savedBy         User[]     @relation("SavedPosts")
+  likes           Like[]
+  comments        Comment[]
+  media           Media[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+
+  @@map("posts")
 }
 
 enum PostStatus {
@@ -47,8 +77,114 @@ enum PostStatus {
   PUBLISHED
 }
 
+model Tag {
+  id    String @id @default(uuid())
+  name  String @unique
+  posts Post[]
+
+  @@map("tags")
+}
+
 model Category {
   id    String @id @default(uuid())
   name  String @unique
   posts Post[]
+
+  @@map("categories")
+}
+
+model Media {
+  id         String    @id @default(uuid())
+  url        String
+  type       MediaType
+  mimeType   String
+  size       Int
+  uploaderId String?
+  uploader   User?     @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+  postId     String?
+  post       Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model Like {
+  id     String @id @default(uuid())
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("likes")
+}
+
+model Comment {
+  id             String    @id @default(uuid())
+  content        String
+  authorId       String?
+  author         User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorUsername String?
+  isDeleted      Boolean   @default(false)
+  postId         String
+  post           Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId       String?
+  parent         Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies        Comment[] @relation("CommentReplies")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("comments")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  follower    User     @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+model Notification {
+  id                  String              @id @default(uuid())
+  title               String
+  message             String
+  data                Json?
+  recipientId         String
+  recipient           User                @relation("UserNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  isRead              Boolean             @default(false)
+  readAt              DateTime?
+  expiresAt           DateTime?
+  type                NotificationType
+  notificationChannel NotificationChannel
+  priority            Priority
+  createdAt           DateTime            @default(now())
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  POST_LIKED
+  POST_COMMENTED
+  COMMENT_REPLIED
+  USER_FOLLOWED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum NotificationChannel {
+  WEBSOCKET
+  EMAIL
 }

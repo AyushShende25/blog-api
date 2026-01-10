@@ -31,7 +31,7 @@ services:
       - blog-network
 
   db:
-    image: postgres:15
+    image: postgres:17
     container_name: blog-db
     environment:
       - POSTGRES_USER=blog_admin
@@ -46,10 +46,11 @@ services:
       - blog-network
 
   redis:
-    image: redis/redis-stack-server:7.2.0-v6
+    image: redis/redis-stack:7.4.0-v8
     container_name: blog-redis
     ports:
       - "6379:6379"
+      - "8001:8001"
     volumes:
       - redis_data:/data
     restart: unless-stopped
