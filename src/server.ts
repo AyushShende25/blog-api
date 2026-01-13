@@ -1,25 +1,41 @@
-import "dotenv/config";
-
 import app from "@/app";
 import { env } from "@/config/env";
+import { initRedis } from "@/libs/redis";
 import Logger from "@/utils/logger";
 
-process.on("uncaughtException", (err) => {
-  Logger.error("UNCAUGHT EXCEPTION! 💥 Shutting Down...");
-  Logger.error(err);
-  process.exit(1);
-});
+const bootstrap = async () => {
+	await initRedis();
+	const server = app.listen(env.PORT, () => {
+		Logger.info(`API running on port ${env.PORT}`);
+	});
 
-const server = app.listen(env.PORT, () => {
-  Logger.info(`API running on port ${env.PORT}`);
-});
+	function shutdown(code: number) {
+		Logger.info("Shutting down server...");
 
-process.on("unhandledRejection", (reason, promise) => {
-  Logger.error("UNHANDLED REJECTION! 💥 Shutting Down...");
-  Logger.error(reason);
-  Logger.error(promise);
-  server.close(() => {
-    Logger.info("Server closed due to an unhandled rejection.");
-    process.exit(1);
-  });
+		server.close(() => {
+			Logger.info("HTTP server closed.");
+			process.exit(code);
+		});
+
+		setTimeout(() => {
+			Logger.error("Force shutdown");
+			process.exit(code);
+		}, 5000).unref();
+	}
+
+	process.on("uncaughtException", (err) => {
+		Logger.error("UNCAUGHT EXCEPTION!", err);
+		shutdown(1);
+	});
+	process.on("unhandledRejection", (reason) => {
+		Logger.error("UNHANDLED PROMISE REJECTION!", reason);
+		shutdown(1);
+	});
+	process.on("SIGINT", () => shutdown(0));
+	process.on("SIGTERM", () => shutdown(0));
+};
+
+bootstrap().catch((err) => {
+	console.error("Failed to bootstrap server", err);
+	process.exit(1);
 });
