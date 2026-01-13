@@ -1,32 +1,32 @@
 import type {
-  ErrorRequestHandler,
-  NextFunction,
-  Request,
-  Response,
+	ErrorRequestHandler,
+	NextFunction,
+	Request,
+	Response,
 } from "express";
-import { StatusCodes } from "http-status-codes";
-
+import { ZodError } from "zod";
 import { env } from "@/config/env";
 import { BaseError } from "@/errors";
 import Logger from "@/utils/logger";
 
 export const errorHandler: ErrorRequestHandler = (
-  err: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction,
+	err: Error,
+	_req: Request,
+	res: Response,
+	_next: NextFunction,
 ) => {
-  if (err instanceof BaseError) {
-    res.status(err.StatusCode).json({
-      success: false,
-      errors: err.serializeErrors(),
-    });
-    return;
-  }
+	if (err instanceof ZodError) {
+		return res.status(422).json({
+			errors: err.issues.map((issue) => ({
+				message: issue.message,
+				...(issue.path.length > 0 && { path: issue.path.join(".") }),
+			})),
+		});
+	}
+	if (err instanceof BaseError) {
+		return res.status(err.StatusCode).json(err.serializeErrors());
+	}
 
-  env.NODE_ENV === "development" && Logger.error(err);
-  res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-    success: false,
-    errors: [{ message: "Something went wrong" }],
-  });
+	env.NODE_ENV === "development" && Logger.error(err);
+	res.status(500).json([{ message: "Something went wrong" }]);
 };
