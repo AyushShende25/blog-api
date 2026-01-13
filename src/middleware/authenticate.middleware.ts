@@ -1,47 +1,51 @@
+import type { AccessTokenPayload } from "@modules/auth/auth.types";
 import type { NextFunction, Request, Response } from "express";
+import type { Role } from "generated/prisma/enums";
 import jwt from "jsonwebtoken";
-
+import type { Permission } from "@/authorization/permissions";
 import { env } from "@/config/env";
 import { UnAuthorizedError } from "@/errors";
-import type { ActiveUserData } from "@/modules/auth/auth.types";
-import { findUserbyId } from "@/modules/users/users.service";
-import type { Role } from "@prisma/client";
 
 declare global {
-  namespace Express {
-    interface Request {
-      userId?: string;
-      role?: Role;
-    }
-  }
+	namespace Express {
+		interface User {
+			id: string;
+			role: Role;
+			permissions: Permission[];
+		}
+
+		interface Request {
+			user?: User;
+		}
+	}
 }
 
 export const Authenticate = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	req: Request,
+	_: Response,
+	next: NextFunction,
 ) => {
-  const accessToken =
-    req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
+	const accessToken =
+		req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
 
-  if (!accessToken) {
-    throw new UnAuthorizedError("you are not logged in");
-  }
+	if (!accessToken) {
+		throw new UnAuthorizedError("Authentication required");
+	}
 
-  let decoded: ActiveUserData;
-  try {
-    decoded = jwt.verify(accessToken, env.JWT_SECRET) as ActiveUserData;
-  } catch (error) {
-    throw new UnAuthorizedError("Invalid token or user does not exist");
-  }
+	try {
+		const payload = jwt.verify(
+			accessToken,
+			env.JWT_ACCESS_SECRET,
+		) as AccessTokenPayload;
 
-  const user = await findUserbyId(decoded.sub);
+		req.user = {
+			id: payload.sub,
+			role: payload.role,
+			permissions: payload.permissions,
+		};
 
-  if (!user) {
-    throw new UnAuthorizedError("Invalid token or user does not exist");
-  }
-
-  req.userId = user.id;
-  req.role = user.role;
-  next();
+		next();
+	} catch {
+		throw new UnAuthorizedError("Invalid or expired access token");
+	}
 };

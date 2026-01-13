@@ -1,45 +1,29 @@
-import { object, string, type z } from "zod";
+import * as z from "zod";
 
-export const signupSchema = object({
-  body: object({
-    username: string({
-      required_error: "username is required",
-    }).trim(),
-    email: string({
-      required_error: "Email address is required",
-    })
-      .email("Invalid email address")
-      .trim(),
-    password: string({
-      required_error: "Password is required",
-    })
-      .min(8, "Password must be more than 8 characters")
-      .max(32, "Password must be less than 32 characters")
-      .trim(),
-  }),
+export const signupSchema = z.object({
+	username: z.string().trim().toLowerCase(),
+	email: z.email().trim().toLowerCase(),
+	password: z.string().trim().min(8).max(72),
 });
 
-export const verifyEmailSchema = object({
-  body: object({
-    verificationCode: string({
-      required_error: "verification code is required",
-    }).trim(),
-  }),
+export const verifyEmailSchema = z.object({ token: z.uuid() });
+
+export const loginSchema = z.object({
+	email: z.email().trim().toLowerCase(),
+	password: z.string().trim(),
 });
 
-export const loginSchema = object({
-  body: object({
-    email: string({
-      required_error: "Email address is required",
-    })
-      .email("Invalid email address")
-      .trim(),
-    password: string({
-      required_error: "Password is required",
-    }).trim(),
-  }),
+export const forgotPasswordSchema = z.object({
+	email: z.email().trim().toLowerCase(),
 });
 
-export type SignupInput = z.infer<typeof signupSchema>["body"];
-export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>["body"];
-export type LoginInput = z.infer<typeof loginSchema>["body"];
+export const resetPasswordSchema = z.object({
+	token: z.uuid(),
+	password: z.string().trim().min(8).max(72),
+});
+
+export type SignupInput = z.infer<typeof signupSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

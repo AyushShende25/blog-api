@@ -1,30 +1,32 @@
-import { Router } from "express";
-
-import { Authenticate } from "@/middleware/authenticate.middleware";
-import { validate } from "@/middleware/validateRequest.middleware";
 import {
-  loginHandler,
-  logoutHandler,
-  refreshTokensHandler,
-  signupHandler,
-  verifyEmailHandler,
+	forgotPasswordHandler,
+	loginHandler,
+	logoutAllHandler,
+	logoutHandler,
+	refreshTokensHandler,
+	resetPasswordHandler,
+	signupHandler,
+	verifyEmailHandler,
 } from "@modules/auth/auth.controller";
-import {
-  loginSchema,
-  signupSchema,
-  verifyEmailSchema,
-} from "@modules/auth/auth.schema";
+import { Router } from "express";
+import { Authenticate } from "@/middleware/authenticate.middleware";
 
 const router = Router();
 
-router.post("/signup", validate(signupSchema), signupHandler);
+router.post("/signup", signupHandler);
 
-router.post("/verify-email", validate(verifyEmailSchema), verifyEmailHandler);
+router.post("/verify-email", verifyEmailHandler);
 
-router.post("/login", validate(loginSchema), loginHandler);
+router.post("/login", loginHandler);
 
 router.post("/refresh", refreshTokensHandler);
 
-router.post("/logout", Authenticate, logoutHandler);
+router.post("/forgot-password", forgotPasswordHandler);
+
+router.post("/reset-password", resetPasswordHandler);
+
+router.post("/logout", logoutHandler);
+
+router.post("/logout-all", Authenticate, logoutAllHandler);
 
 export default router;

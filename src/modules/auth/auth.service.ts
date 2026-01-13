@@ -1,152 +1,211 @@
-import type { Request } from "express";
-import jwt from "jsonwebtoken";
-
-import { env } from "@/config/env";
-import {
-  BadRequestError,
-  ServiceUnavailableError,
-  UnAuthorizedError,
-} from "@/errors";
-import { addEmailToQueue } from "@/jobs";
-import { findUserbyEmail, findUserbyId } from "@/modules/users/users.service";
-import * as refreshTokenIdStorage from "@/redis/refreshTokenIdStorage.redis";
-import * as verificationCodeStorage from "@/redis/verificationCodeStorage.redis";
-import Logger from "@/utils/logger";
-import { createUser, verifyUser } from "@modules/auth/auth.dal";
 import type {
-  LoginInput,
-  SignupInput,
-  VerifyEmailInput,
+	ForgotPasswordInput,
+	LoginInput,
+	ResetPasswordInput,
+	SignupInput,
+	VerifyEmailInput,
 } from "@modules/auth/auth.schema";
-import type { RefreshTokenPayload } from "@modules/auth/auth.types";
-import {
-  comparePassword,
-  generateTokens,
-  generateVerificationCode,
-  hashPassword,
-} from "@modules/auth/auth.utils";
-import { Prisma } from "@prisma/client";
+import { hashPassword, verifyPassword } from "@modules/auth/auth.utils";
+import { env } from "@/config/env";
+import { BadRequestError, ConflictError, UnAuthorizedError } from "@/errors";
+import { addEmailJob } from "@/jobs/email/email.queue";
+import { db } from "@/libs/db";
+import { refreshTokenStore } from "@/store/refresh-token.store";
 
 export const signupService = async (signupInput: SignupInput) => {
-  const existingUser = await findUserbyEmail(signupInput.email);
-  if (existingUser) {
-    throw new BadRequestError("email already in use");
-  }
-  const emailVerificationCode = generateVerificationCode();
-  try {
-    await addEmailToQueue("verification", {
-      email: signupInput.email,
-      username: signupInput.username,
-      emailVerificationCode,
-    });
-  } catch (error) {
-    Logger.error("could not send verification email");
-    throw new ServiceUnavailableError("Email service is down");
-  }
-  const hashedPassword = await hashPassword(signupInput.password);
+	const { username, email, password } = signupInput;
 
-  try {
-    const newUser = await createUser({
-      email: signupInput.email,
-      username: signupInput.username,
-      password: hashedPassword,
-    });
+	const existingUserByEmail = await db.user.findUnique({
+		where: { email },
+	});
+	if (existingUserByEmail) {
+		throw new ConflictError("email already in use");
+	}
 
-    await verificationCodeStorage.setVerificationCode(
-      newUser.id,
-      emailVerificationCode,
-    );
-    const { password, ...safeUser } = newUser;
-    return safeUser;
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2002") {
-        throw new BadRequestError("username is already taken");
-      }
-    }
-    throw new Error("could not register user");
-  }
+	const existingUserByUsername = await db.user.findUnique({
+		where: { username },
+	});
+
+	if (existingUserByUsername) {
+		throw new ConflictError("username already taken");
+	}
+
+	const hashedPassword = await hashPassword(password);
+
+	const user = await db.user.create({
+		data: { username, email, password: hashedPassword },
+	});
+
+	const verificationToken = crypto.randomUUID();
+	await db.verificationToken.create({
+		data: {
+			id: verificationToken,
+			userId: user.id,
+			expiresAt: new Date(Date.now() + 1000 * 60 * 60), // 1 hr
+		},
+	});
+
+	await addEmailJob("verification", {
+		type: "verification",
+		email,
+		username,
+		code: verificationToken,
+	});
+
+	return { userId: user.id };
 };
 
 export const verifyEmailService = async (
-  verifyEmailInput: VerifyEmailInput,
+	verifyEmailInput: VerifyEmailInput,
 ) => {
-  const { verificationCode } = verifyEmailInput;
+	const { token } = verifyEmailInput;
 
-  const userId =
-    await verificationCodeStorage.getVerificationCode(verificationCode);
+	const verificationToken = await db.verificationToken.findFirst({
+		where: {
+			id: token,
+			expiresAt: { gt: new Date() },
+		},
+	});
+	if (!verificationToken) {
+		throw new BadRequestError("Invalid or expired verification token");
+	}
 
-  if (!userId) {
-    throw new BadRequestError("Invalid or expired verification code");
-  }
+	const user = await db.user.update({
+		where: { id: verificationToken.userId },
+		data: { isVerified: true },
+	});
 
-  const verifiedUser = await verifyUser(userId);
+	await db.verificationToken.delete({
+		where: { id: token },
+	});
 
-  if (verifiedUser) {
-    await verificationCodeStorage.deleteVerificationCode(verificationCode);
-    try {
-      await addEmailToQueue("welcome", {
-        email: verifiedUser.email,
-        username: verifiedUser.username,
-      });
-    } catch (error) {
-      Logger.error("could not send welcome email");
-    }
-  }
-  return verifiedUser;
+	await addEmailJob("welcome", {
+		type: "welcome",
+		email: user.email,
+		username: user.username,
+	});
 };
 
 export const loginService = async (loginInput: LoginInput) => {
-  const existingUser = await findUserbyEmail(loginInput.email);
+	const { email, password } = loginInput;
 
-  if (!existingUser || !existingUser.isVerified) {
-    throw new UnAuthorizedError("Invalid Credentials or user is not verified");
-  }
+	const existingUser = await db.user.findUnique({
+		where: { email },
+	});
 
-  const isPasswordValid = await comparePassword(
-    loginInput.password,
-    existingUser.password,
-  );
-  if (!isPasswordValid) {
-    throw new UnAuthorizedError("Invalid credentials");
-  }
+	if (!existingUser) {
+		throw new UnAuthorizedError("Invalid Credentials");
+	}
 
-  const { password, ...safeUser } = existingUser;
-  const { access_token, refresh_token } = await generateTokens(safeUser);
-  return { access_token, refresh_token, user: safeUser };
+	if (!existingUser.isVerified) {
+		throw new BadRequestError("Email not verified");
+	}
+
+	const isPasswordValid = await verifyPassword(password, existingUser.password);
+
+	if (!isPasswordValid) {
+		throw new UnAuthorizedError("Invalid credentials");
+	}
+
+	return {
+		userId: existingUser.id,
+		role: existingUser.role,
+	};
 };
 
-export const refreshTokensService = async (req: Request) => {
-  const refreshToken: string = req.cookies.refresh_token;
-  if (!refreshToken) {
-    throw new UnAuthorizedError();
-  }
-  try {
-    const { refreshTokenId, sub } = jwt.verify(
-      refreshToken,
-      env.JWT_SECRET,
-    ) as RefreshTokenPayload;
+export const refreshTokensService = async (refreshTokenId: string) => {
+	const userId = await refreshTokenStore.validate(refreshTokenId);
+	if (!userId) {
+		throw new UnAuthorizedError("Invalid refresh token");
+	}
 
-    const user = await findUserbyId(sub);
-    if (!user) {
-      throw new UnAuthorizedError("User does not exist");
-    }
+	const user = await db.user.findUnique({
+		where: { id: userId },
+		select: { role: true },
+	});
+	if (!user) {
+		throw new UnAuthorizedError("User does not exist");
+	}
 
-    const isValid = await refreshTokenIdStorage.validate(
-      user.id,
-      refreshTokenId,
-    );
-    if (isValid) {
-      await refreshTokenIdStorage.invalidate(user.id);
-    } else {
-      throw new UnAuthorizedError("Invalid token");
-    }
-    return await generateTokens(user);
-  } catch (error) {
-    throw new UnAuthorizedError("Invalid token: Access Denied");
-  }
+	await refreshTokenStore.revoke(refreshTokenId);
+
+	const newRefreshTokenId = refreshTokenStore.generateTokenId();
+	await refreshTokenStore.store(userId, newRefreshTokenId);
+
+	return {
+		userId,
+		role: user.role,
+		newRefreshTokenId,
+	};
 };
 
-export const logoutService = async (userId: string) => {
-  await refreshTokenIdStorage.invalidate(userId);
+export const logoutService = async (refreshTokenId?: string) => {
+	if (refreshTokenId) {
+		await refreshTokenStore.revoke(refreshTokenId);
+	}
+};
+
+export const logoutAllService = async (userId: string) => {
+	await refreshTokenStore.revokeAll(userId);
+};
+
+export const forgotPasswordService = async (
+	forgotPasswordInput: ForgotPasswordInput,
+) => {
+	const { email } = forgotPasswordInput;
+	const user = await db.user.findUnique({
+		where: { email },
+	});
+	if (!user || !user.isVerified) {
+		return;
+	}
+
+	const token = crypto.randomUUID();
+
+	await db.passwordResetToken.create({
+		data: {
+			id: token,
+			userId: user.id,
+			expiresAt: new Date(Date.now() + env.RESET_TOKEN_TTL_MS),
+		},
+	});
+
+	await addEmailJob("password-reset", {
+		type: "password-reset",
+		email,
+		username: user.username,
+		resetLink: `${env.CLIENT_URL}/reset-password?token=${token}`,
+	});
+};
+
+export const resetPasswordService = async (
+	resetPasswordInput: ResetPasswordInput,
+) => {
+	const { token, password: newPassword } = resetPasswordInput;
+
+	const resetToken = await db.passwordResetToken.findFirst({
+		where: {
+			id: token,
+			expiresAt: { gt: new Date() },
+		},
+	});
+	if (!resetToken) {
+		throw new BadRequestError("Invalid or expired reset token");
+	}
+
+	const hashedPassword = await hashPassword(newPassword);
+	const user = await db.user.update({
+		where: { id: resetToken.userId },
+		data: { password: hashedPassword },
+	});
+
+	await db.passwordResetToken.delete({
+		where: { id: token },
+	});
+
+	await addEmailJob("reset-success", {
+		type: "reset-success",
+		email: user.email,
+		username: user.username,
+	});
 };

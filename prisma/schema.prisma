@@ -8,29 +8,53 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  username      String         @unique
-  password      String
-  isVerified    Boolean        @default(false)
-  avatar        String?
-  bio           String?
-  socialLinks   Json?
-  role          Role           @default(USER)
-  status        UserStatus     @default(ACTIVE)
-  posts         Post[]
-  savedPosts    Post[]         @relation("SavedPosts")
-  likes         Like[]
-  comments      Comment[]
-  followers     Follow[]       @relation("UserFollowers")
-  following     Follow[]       @relation("UserFollows")
-  media         Media[]
-  notifications Notification[] @relation("UserNotifications")
-  deletedAt     DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  username            String               @unique
+  password            String
+  isVerified          Boolean              @default(false)
+  avatar              String?
+  bio                 String?
+  socialLinks         Json?
+  role                Role                 @default(USER)
+  status              UserStatus           @default(ACTIVE)
+  posts               Post[]
+  savedPosts          Post[]               @relation("SavedPosts")
+  likes               Like[]
+  comments            Comment[]
+  followers           Follow[]             @relation("UserFollowers")
+  following           Follow[]             @relation("UserFollows")
+  media               Media[]
+  notifications       Notification[]       @relation("UserNotifications")
+  deletedAt           DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  verificationTokens  VerificationToken[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
+}
+
+model VerificationToken {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("password_reset_tokens")
 }
 
 enum UserStatus {
