@@ -1,17 +1,13 @@
-import { StatusCodes } from "http-status-codes";
-
 import { BaseError } from "@/errors/BaseError";
 
 export class UnAuthorizedError extends BaseError {
-  StatusCode = StatusCodes.UNAUTHORIZED;
+	StatusCode = 401;
 
-  constructor(public message = "Unauthorized") {
-    super(message);
+	constructor(public message = "Unauthorized") {
+		super(message);
+	}
 
-    Object.setPrototypeOf(this, UnAuthorizedError.prototype);
-  }
-
-  serializeErrors() {
-    return [{ message: this.message }];
-  }
+	serializeErrors() {
+		return [{ message: this.message }];
+	}
 }

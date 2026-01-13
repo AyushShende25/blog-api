@@ -1,9 +1,9 @@
 import { BaseError } from "@/errors/BaseError";
 
-export class BadRequestError extends BaseError {
-	StatusCode = 400;
+export class ConflictError extends BaseError {
+	StatusCode = 409;
 
-	constructor(public message = "Bad Request") {
+	constructor(public message = "Entity already exists") {
 		super(message);
 	}
 
