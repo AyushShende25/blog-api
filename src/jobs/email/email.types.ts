@@ -1,8 +1,33 @@
-export type EmailJobType = "verification" | "welcome";
+export type EmailJobType =
+	| "verification"
+	| "password-reset"
+	| "welcome"
+	| "reset-success";
 
-export type EmailJobData = {
-  email: string;
-  username: string;
-  emailVerificationCode?: string;
-  resetLink?: string;
+export type BaseEmailJobData = {
+	email: string;
+	username: string;
 };
+
+export interface VerificationEmailData extends BaseEmailJobData {
+	type: "verification";
+	code: string;
+}
+
+export interface PasswordResetEmailData extends BaseEmailJobData {
+	type: "password-reset";
+	resetLink: string;
+}
+
+export interface WelcomeEmailData extends BaseEmailJobData {
+	type: "welcome";
+}
+export interface ResetSuccessEmailData extends BaseEmailJobData {
+	type: "reset-success";
+}
+
+export type EmailJobData =
+	| VerificationEmailData
+	| PasswordResetEmailData
+	| ResetSuccessEmailData
+	| WelcomeEmailData;

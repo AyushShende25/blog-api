@@ -1,53 +1,61 @@
-import nodemailer from "nodemailer";
-
+import nodemailer, { type Transporter } from "nodemailer";
 import { env } from "@/config/env";
 import {
-  getVerificationTemplate,
-  getWelcomeTemplate,
+	passwordResetTemplate,
+	resetSuccessfulTemplate,
+	verificationTemplate,
+	welcomeTemplate,
 } from "@/jobs/email/emailTemplates";
 
-class Email {
-  private to: string;
-  private username: string;
-  private from: string;
+class EmailService {
+	private transporter: Transporter;
+	constructor() {
+		this.transporter = nodemailer.createTransport({
+			host: env.EMAIL_HOST,
+			port: env.EMAIL_PORT,
+			auth: {
+				user: env.EMAIL_USERNAME,
+				pass: env.EMAIL_PASSWORD,
+			},
+		});
+	}
 
-  constructor({ username, to }: { username: string; to: string }) {
-    this.to = to;
-    this.username = username;
-    this.from = `Inkspire - <${env.EMAIL_FROM}>`;
-  }
+	private send(to: string, subject: string, html: string) {
+		return this.transporter.sendMail({
+			from: `Inkspire <${env.EMAIL_FROM}>`,
+			to,
+			subject,
+			html,
+		});
+	}
 
-  newTransport() {
-    return nodemailer.createTransport({
-      host: env.EMAIL_HOST,
-      port: env.EMAIL_PORT,
-      auth: {
-        user: env.EMAIL_USERNAME,
-        pass: env.EMAIL_PASSWORD,
-      },
-    });
-  }
+	sendVerification(to: string, username: string, code: string) {
+		return this.send(
+			to,
+			"Verify your account",
+			verificationTemplate(username, code),
+		);
+	}
 
-  async send(html: string, subject: string) {
-    const mailOptions = {
-      from: this.from,
-      to: this.to,
-      subject,
-      html,
-    };
-    //create a transport and send email
-    await this.newTransport().sendMail(mailOptions);
-  }
+	sendPasswordReset(to: string, username: string, resetLink: string) {
+		return this.send(
+			to,
+			"Reset your Inkspire password",
+			passwordResetTemplate(username, resetLink),
+		);
+	}
 
-  async sendVerificationCode(code: string) {
-    const html = getVerificationTemplate(this.username, code);
-    await this.send(html, "Verify your account");
-  }
+	sendWelcome(to: string, username: string) {
+		return this.send(to, "Welcome to Inkspire", welcomeTemplate(username));
+	}
 
-  async sendWelcome() {
-    const html = getWelcomeTemplate(this.username);
-    await this.send(html, "Welcome to Organization-Name!");
-  }
+	sendResetSuccess(to: string, username: string) {
+		return this.send(
+			to,
+			"Password reset successfull",
+			resetSuccessfulTemplate(username),
+		);
+	}
 }
 
-export default Email;
+export default new EmailService();

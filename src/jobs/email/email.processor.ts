@@ -1,33 +1,32 @@
 import type { Job } from "bullmq";
-
-import Email from "@/jobs/email/email.service";
+import emailService from "@/jobs/email/email.service";
 import type { EmailJobData } from "@/jobs/email/email.types";
-import Logger from "@/utils/logger";
 
 export const processEmailJob = async (job: Job<EmailJobData>) => {
-  Logger.info(`Processing ${job.name} email job`, { jobId: job.id });
+	const { data } = job;
 
-  const { email, username, emailVerificationCode, resetLink } = job.data;
+	switch (data.type) {
+		case "verification":
+			await emailService.sendVerification(data.email, data.username, data.code);
+			break;
 
-  const emailService = new Email({ username, to: email });
+		case "password-reset":
+			await emailService.sendPasswordReset(
+				data.email,
+				data.username,
+				data.resetLink,
+			);
+			break;
 
-  try {
-    if (job.name === "verification") {
-      await emailService.sendVerificationCode(emailVerificationCode as string);
-    } else if (job.name === "welcome") {
-      await emailService.sendWelcome();
-    } else {
-      throw new Error(`Unknown job type: ${job.name}`);
-    }
-    Logger.info("Email sent successfully", { jobId: job.id, type: job.name });
-    return { success: true };
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  } catch (error: any) {
-    Logger.error(`Failed to send email: ${error.message}`, {
-      jobId: job.id,
-      type: job.name,
-      error: error.message,
-    });
-    throw error;
-  }
+		case "welcome":
+			await emailService.sendWelcome(data.email, data.username);
+			break;
+
+		case "reset-success":
+			await emailService.sendWelcome(data.email, data.username);
+			break;
+
+		default:
+			throw new Error(`Unknown email job type: ${job.name}`);
+	}
 };

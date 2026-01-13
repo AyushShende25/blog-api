@@ -1,23 +1,13 @@
 import { Queue } from "bullmq";
-
-import { defaultQueueOptions, redisConnection } from "@/config/queue";
+import { defaultJobOptions, redisConnection } from "@/jobs/config";
 import type { EmailJobData, EmailJobType } from "@/jobs/email/email.types";
-import Logger from "@/utils/logger";
 
-export const emailQueueName = "emailQueue";
+export const EMAIL_QUEUE = "email";
 
-export const emailQueue = new Queue(emailQueueName, {
-  connection: redisConnection,
-  defaultJobOptions: defaultQueueOptions,
+export const emailQueue = new Queue<EmailJobData>(EMAIL_QUEUE, {
+	connection: redisConnection,
+	defaultJobOptions,
 });
 
-export const addEmailToQueue = async (
-  jobType: EmailJobType,
-  jobData: EmailJobData,
-) => {
-  await emailQueue.add(jobType, jobData);
-};
-
-emailQueue.on("error", (err) => {
-  Logger.error(err);
-});
+export const addEmailJob = (type: EmailJobType, data: EmailJobData) =>
+	emailQueue.add(type, data);
