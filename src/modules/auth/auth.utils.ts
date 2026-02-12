@@ -17,11 +17,15 @@ export const verifyPassword = async (
 	return await bcrypt.compare(inputPassword, storedPassword);
 };
 
-export const signAccessToken = (
-	userId: string,
-	role: Role,
-	permissions: Permission[],
-) => {
+export const signAccessToken = ({
+	role,
+	userId,
+	permissions,
+}: {
+	userId: string;
+	role: Role;
+	permissions: Permission[];
+}) => {
 	const payload: AccessTokenPayload = {
 		sub: userId,
 		role,

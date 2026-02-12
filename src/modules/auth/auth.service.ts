@@ -1,18 +1,13 @@
-import type {
-	ForgotPasswordInput,
-	LoginInput,
-	ResetPasswordInput,
-	SignupInput,
-	VerifyEmailInput,
-} from "@modules/auth/auth.schema";
+import type { LoginInput, SignupInput } from "@modules/auth/auth.schema";
 import { hashPassword, verifyPassword } from "@modules/auth/auth.utils";
+import { UserStatus } from "generated/prisma/enums";
 import { env } from "@/config/env";
 import { BadRequestError, ConflictError, UnAuthorizedError } from "@/errors";
 import { addEmailJob } from "@/jobs/email/email.queue";
 import { db } from "@/libs/db";
 import { refreshTokenStore } from "@/store/refresh-token.store";
 
-export const signupService = async (signupInput: SignupInput) => {
+export const signup = async (signupInput: SignupInput) => {
 	const { username, email, password } = signupInput;
 
 	const existingUserByEmail = await db.user.findUnique({
@@ -55,11 +50,7 @@ export const signupService = async (signupInput: SignupInput) => {
 	return { userId: user.id };
 };
 
-export const verifyEmailService = async (
-	verifyEmailInput: VerifyEmailInput,
-) => {
-	const { token } = verifyEmailInput;
-
+export const verifyEmail = async (token: string) => {
 	const verificationToken = await db.verificationToken.findFirst({
 		where: {
 			id: token,
@@ -71,12 +62,15 @@ export const verifyEmailService = async (
 	}
 
 	const user = await db.user.update({
-		where: { id: verificationToken.userId },
+		where: { id: verificationToken.userId, deletedAt: null },
 		data: { isVerified: true },
 	});
+	if (!user) {
+		throw new BadRequestError("Invalid token");
+	}
 
-	await db.verificationToken.delete({
-		where: { id: token },
+	await db.verificationToken.deleteMany({
+		where: { userId: user.id },
 	});
 
 	await addEmailJob("welcome", {
@@ -86,21 +80,22 @@ export const verifyEmailService = async (
 	});
 };
 
-export const loginService = async (loginInput: LoginInput) => {
+export const login = async (loginInput: LoginInput) => {
 	const { email, password } = loginInput;
 
-	const existingUser = await db.user.findUnique({
-		where: { email },
+	const existingUser = await db.user.findFirst({
+		where: { email, deletedAt: null },
 	});
 
 	if (!existingUser) {
 		throw new UnAuthorizedError("Invalid Credentials");
 	}
-
 	if (!existingUser.isVerified) {
 		throw new BadRequestError("Email not verified");
 	}
-
+	if (existingUser.status !== UserStatus.ACTIVE) {
+		throw new UnAuthorizedError("Account is not active");
+	}
 	const isPasswordValid = await verifyPassword(password, existingUser.password);
 
 	if (!isPasswordValid) {
@@ -113,24 +108,28 @@ export const loginService = async (loginInput: LoginInput) => {
 	};
 };
 
-export const refreshTokensService = async (refreshTokenId: string) => {
+export const refreshTokens = async (refreshTokenId: string) => {
 	const userId = await refreshTokenStore.validate(refreshTokenId);
+
 	if (!userId) {
 		throw new UnAuthorizedError("Invalid refresh token");
 	}
 
-	const user = await db.user.findUnique({
-		where: { id: userId },
-		select: { role: true },
+	const user = await db.user.findFirst({
+		where: { id: userId, deletedAt: null },
+		select: { role: true, status: true },
 	});
 	if (!user) {
 		throw new UnAuthorizedError("User does not exist");
+	}
+	if (user.status !== UserStatus.ACTIVE) {
+		throw new UnAuthorizedError("Account is not active");
 	}
 
 	await refreshTokenStore.revoke(refreshTokenId);
 
 	const newRefreshTokenId = refreshTokenStore.generateTokenId();
-	await refreshTokenStore.store(userId, newRefreshTokenId);
+	await refreshTokenStore.store({ tokenId: newRefreshTokenId, userId });
 
 	return {
 		userId,
@@ -139,28 +138,29 @@ export const refreshTokensService = async (refreshTokenId: string) => {
 	};
 };
 
-export const logoutService = async (refreshTokenId?: string) => {
+export const logout = async (refreshTokenId?: string) => {
 	if (refreshTokenId) {
 		await refreshTokenStore.revoke(refreshTokenId);
 	}
 };
 
-export const logoutAllService = async (userId: string) => {
+export const logoutAll = async (userId: string) => {
 	await refreshTokenStore.revokeAll(userId);
 };
 
-export const forgotPasswordService = async (
-	forgotPasswordInput: ForgotPasswordInput,
-) => {
-	const { email } = forgotPasswordInput;
-	const user = await db.user.findUnique({
-		where: { email },
+export const forgotPassword = async (email: string) => {
+	const user = await db.user.findFirst({
+		where: { email, deletedAt: null },
 	});
-	if (!user || !user.isVerified) {
+	if (!user || !user.isVerified || user.status !== UserStatus.ACTIVE) {
 		return;
 	}
 
 	const token = crypto.randomUUID();
+
+	await db.passwordResetToken.deleteMany({
+		where: { userId: user.id },
+	});
 
 	await db.passwordResetToken.create({
 		data: {
@@ -178,11 +178,13 @@ export const forgotPasswordService = async (
 	});
 };
 
-export const resetPasswordService = async (
-	resetPasswordInput: ResetPasswordInput,
-) => {
-	const { token, password: newPassword } = resetPasswordInput;
-
+export const resetPassword = async ({
+	token,
+	newPassword,
+}: {
+	token: string;
+	newPassword: string;
+}) => {
 	const resetToken = await db.passwordResetToken.findFirst({
 		where: {
 			id: token,
@@ -199,8 +201,8 @@ export const resetPasswordService = async (
 		data: { password: hashedPassword },
 	});
 
-	await db.passwordResetToken.delete({
-		where: { id: token },
+	await db.passwordResetToken.deleteMany({
+		where: { userId: resetToken.userId },
 	});
 
 	await addEmailJob("reset-success", {

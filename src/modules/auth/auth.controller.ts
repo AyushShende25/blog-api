@@ -3,17 +3,17 @@ import {
 	loginSchema,
 	resetPasswordSchema,
 	signupSchema,
-	verifyEmailSchema,
+	tokenParamsSchema,
 } from "@modules/auth/auth.schema";
 import {
-	forgotPasswordService,
-	loginService,
-	logoutAllService,
-	logoutService,
-	refreshTokensService,
-	resetPasswordService,
-	signupService,
-	verifyEmailService,
+	forgotPassword,
+	login,
+	logout,
+	logoutAll,
+	refreshTokens,
+	resetPassword,
+	signup,
+	verifyEmail,
 } from "@modules/auth/auth.service";
 import { signAccessToken } from "@modules/auth/auth.utils";
 import type { Request, Response } from "express";
@@ -22,10 +22,10 @@ import { env } from "@/config/env";
 import { UnAuthorizedError } from "@/errors";
 import { refreshTokenStore } from "@/store/refresh-token.store";
 
-export const signupHandler = async (req: Request, res: Response) => {
+export const signupController = async (req: Request, res: Response) => {
 	const { username, email, password } = signupSchema.parse(req.body);
 
-	await signupService({ username, email, password });
+	await signup({ username, email, password });
 
 	res.status(201).json({
 		message:
@@ -33,25 +33,25 @@ export const signupHandler = async (req: Request, res: Response) => {
 	});
 };
 
-export const verifyEmailHandler = async (req: Request, res: Response) => {
-	const { token } = verifyEmailSchema.parse(req.query);
+export const verifyEmailController = async (req: Request, res: Response) => {
+	const { token } = tokenParamsSchema.parse(req.query);
 
-	await verifyEmailService({ token });
+	await verifyEmail(token);
 
 	res.status(200).json({
 		message: "Email verified successfully",
 	});
 };
 
-export const loginHandler = async (req: Request, res: Response) => {
+export const loginController = async (req: Request, res: Response) => {
 	const { email, password } = loginSchema.parse(req.body);
-	const { userId, role } = await loginService({ email, password });
+	const { userId, role } = await login({ email, password });
 
 	const permissions = RolePermissions[role];
-	const accessToken = signAccessToken(userId, role, permissions);
+	const accessToken = signAccessToken({ userId, role, permissions });
 
 	const refreshTokenId = refreshTokenStore.generateTokenId();
-	await refreshTokenStore.store(userId, refreshTokenId);
+	await refreshTokenStore.store({ tokenId: refreshTokenId, userId });
 
 	res.cookie("access_token", accessToken, {
 		httpOnly: true,
@@ -64,23 +64,22 @@ export const loginHandler = async (req: Request, res: Response) => {
 		httpOnly: true,
 		secure: env.NODE_ENV === "production",
 		sameSite: "lax",
-		path: "/auth/refresh",
 		maxAge: env.REFRESH_TOKEN_TTL_SECONDS * 1000,
 	});
 
 	res.status(200).json({ message: "User login success" });
 };
 
-export const refreshTokensHandler = async (req: Request, res: Response) => {
+export const refreshTokensController = async (req: Request, res: Response) => {
 	const refreshTokenId = req.cookies?.refresh_token;
 	if (!refreshTokenId) {
 		throw new UnAuthorizedError("Missing refresh token");
 	}
 	const { newRefreshTokenId, userId, role } =
-		await refreshTokensService(refreshTokenId);
+		await refreshTokens(refreshTokenId);
 
 	const permissions = RolePermissions[role];
-	const accessToken = signAccessToken(userId, role, permissions);
+	const accessToken = signAccessToken({ userId, role, permissions });
 
 	res.cookie("access_token", accessToken, {
 		httpOnly: true,
@@ -93,46 +92,44 @@ export const refreshTokensHandler = async (req: Request, res: Response) => {
 		httpOnly: true,
 		secure: env.NODE_ENV === "production",
 		sameSite: "lax",
-		path: "/auth/refresh",
 		maxAge: env.REFRESH_TOKEN_TTL_SECONDS * 1000,
 	});
 
 	res.status(200).json({ message: "new tokens generation successfull" });
 };
 
-export const logoutHandler = async (req: Request, res: Response) => {
-	await logoutService(req.cookies?.refresh_token);
+export const logoutController = async (req: Request, res: Response) => {
+	await logout(req.cookies?.refresh_token);
 
 	res.clearCookie("access_token");
-	res.clearCookie("refresh_token", { path: "/auth/refresh" });
+	res.clearCookie("refresh_token");
 
 	res.status(204).send();
 };
 
-export const logoutAllHandler = async (req: Request, res: Response) => {
-	// biome-ignore lint/style/noNonNullAssertion: <authenticate middleware applied>
-	await logoutAllService(req.user!.id);
+export const logoutAllController = async (req: Request, res: Response) => {
+	await logoutAll(req.user!.id);
 
 	res.clearCookie("access_token");
-	res.clearCookie("refresh_token", { path: "/auth/refresh" });
+	res.clearCookie("refresh_token");
 
 	res.status(204).send();
 };
 
-export const forgotPasswordHandler = async (req: Request, res: Response) => {
+export const forgotPasswordController = async (req: Request, res: Response) => {
 	const { email } = forgotPasswordSchema.parse(req.body);
 
-	await forgotPasswordService({ email });
+	await forgotPassword(email);
 
 	res.status(200).json({
 		message: "If the email exists, a reset link has been sent",
 	});
 };
 
-export const resetPasswordHandler = async (req: Request, res: Response) => {
-	const { token, password } = resetPasswordSchema.parse(req.body);
-
-	await resetPasswordService({ token, password });
+export const resetPasswordController = async (req: Request, res: Response) => {
+	const { password } = resetPasswordSchema.parse(req.body);
+	const { token } = tokenParamsSchema.parse(req.query);
+	await resetPassword({ token, newPassword: password });
 
 	res.status(200).json({
 		message: "Password updated successfully",
