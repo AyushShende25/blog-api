@@ -23,7 +23,7 @@ export const processEmailJob = async (job: Job<EmailJobData>) => {
 			break;
 
 		case "reset-success":
-			await emailService.sendWelcome(data.email, data.username);
+			await emailService.sendResetSuccess(data.email, data.username);
 			break;
 
 		default:

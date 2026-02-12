@@ -1,7 +1,7 @@
 import app from "@/app";
 import { env } from "@/config/env";
+import Logger from "@/libs/logger";
 import { initRedis } from "@/libs/redis";
-import Logger from "@/utils/logger";
 
 const bootstrap = async () => {
 	await initRedis();

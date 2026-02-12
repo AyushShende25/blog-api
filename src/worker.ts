@@ -1,5 +1,5 @@
 import { initJobs, shutdownWorkers } from "@/jobs";
-import Logger from "@/utils/logger";
+import Logger from "@/libs/logger";
 
 Logger.info("Starting worker process...");
 

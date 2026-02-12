@@ -3,7 +3,7 @@ import { redisConnection } from "@/jobs/config";
 import { processEmailJob } from "@/jobs/email/email.processor";
 import { EMAIL_QUEUE } from "@/jobs/email/email.queue";
 import type { EmailJobData } from "@/jobs/email/email.types";
-import Logger from "@/utils/logger";
+import Logger from "@/libs/logger";
 
 export const startEmailWorker = () => {
 	const worker = new Worker<EmailJobData>(EMAIL_QUEUE, processEmailJob, {

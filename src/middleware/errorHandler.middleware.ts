@@ -7,7 +7,7 @@ import type {
 import { ZodError } from "zod";
 import { env } from "@/config/env";
 import { BaseError } from "@/errors";
-import Logger from "@/utils/logger";
+import Logger from "@/libs/logger";
 
 export const errorHandler: ErrorRequestHandler = (
 	err: Error,
@@ -27,6 +27,6 @@ export const errorHandler: ErrorRequestHandler = (
 		return res.status(err.StatusCode).json(err.serializeErrors());
 	}
 
-	env.NODE_ENV === "development" && Logger.error(err);
+	env.NODE_ENV === "development" && Logger.error(`Error:${err}`);
 	res.status(500).json([{ message: "Something went wrong" }]);
 };

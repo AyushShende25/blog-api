@@ -11,11 +11,15 @@ export const refreshTokenStore = {
 		return crypto.randomUUID();
 	},
 
-	async store(
-		tokenId: string,
-		userId: string,
+	async store({
+		tokenId,
+		userId,
 		ttlSeconds = env.REFRESH_TOKEN_TTL_SECONDS,
-	) {
+	}: {
+		tokenId: string;
+		userId: string;
+		ttlSeconds?: number;
+	}) {
 		await redis().set(refreshTokenKey(tokenId), userId, {
 			expiration: { type: "EX", value: ttlSeconds },
 		});

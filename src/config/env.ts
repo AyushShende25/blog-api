@@ -1,5 +1,5 @@
 import z from "zod";
-import Logger from "@/utils/logger";
+import Logger from "@/libs/logger";
 
 const envSchema = z.object({
 	PORT: z.coerce.number().default(8000),

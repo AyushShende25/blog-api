@@ -35,8 +35,7 @@ const consoleFormat = winston.format.combine(
 	winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss:ms" }),
 	winston.format.align(),
 	winston.format.printf(
-		({ timestamp, level, message, service }) =>
-			`${timestamp} [${service}] ${level}: ${message}`,
+		({ timestamp, level, message }) => `${timestamp}  ${level}: ${message}`,
 	),
 );
 
@@ -44,8 +43,7 @@ const fileFormat = winston.format.combine(
 	winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss:ms" }),
 	winston.format.align(),
 	winston.format.printf(
-		({ timestamp, level, message, service }) =>
-			`${timestamp} [${service}] ${level}: ${message}`,
+		({ timestamp, level, message }) => `${timestamp}  ${level}: ${message}`,
 	),
 );
 

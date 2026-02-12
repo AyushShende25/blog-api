@@ -79,7 +79,6 @@ model Post {
   ogImage         String?
   authorId        String?
   author          User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  authorUsername  String?
   status          PostStatus @default(DRAFT)
   coverImage      String?
   publishedAt     DateTime?

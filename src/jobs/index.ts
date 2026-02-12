@@ -1,6 +1,6 @@
 import type { Worker } from "bullmq";
 import { startEmailWorker } from "@/jobs/email/email.worker";
-import Logger from "@/utils/logger";
+import Logger from "@/libs/logger";
 
 const workers: Worker[] = [];
 

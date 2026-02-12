@@ -1,6 +1,6 @@
 import { createClient, type RedisClientType } from "redis";
 import { env } from "@/config/env";
-import Logger from "@/utils/logger";
+import Logger from "@/libs/logger";
 
 let client: RedisClientType | null = null;
 

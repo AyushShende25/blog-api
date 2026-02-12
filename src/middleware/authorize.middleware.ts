@@ -1,15 +1,27 @@
-import { UnAuthorizedError } from "@/errors";
-import type { Role } from "@prisma/client";
 import type { NextFunction, Request, Response } from "express";
+import type { Permission } from "@/authorization/permissions";
+import { ForbiddenError } from "@/errors";
 
-export const authorize =
-  (...allowedRoles: Role[]) =>
-  (req: Request, res: Response, next: NextFunction) => {
-    if (!req.role) {
-      throw new UnAuthorizedError("Role not found");
-    }
-    if (!allowedRoles.includes(req.role)) {
-      throw new UnAuthorizedError("You do not have permission");
-    }
-    next();
-  };
+export const RequirePermission =
+	(permission: Permission) =>
+	(req: Request, _res: Response, next: NextFunction) => {
+		const user = req.user;
+
+		if (!user?.permissions.includes(permission)) {
+			throw new ForbiddenError("Insufficient permissions");
+		}
+
+		next();
+	};
+
+export const RequireAnyPermission =
+	(permissions: Permission[]) =>
+	(req: Request, _res: Response, next: NextFunction) => {
+		const user = req.user;
+
+		if (!permissions.some((p) => user?.permissions.includes(p))) {
+			throw new ForbiddenError("Insufficient permissions");
+		}
+
+		next();
+	};
