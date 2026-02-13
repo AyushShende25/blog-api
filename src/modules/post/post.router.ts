@@ -1,62 +1,79 @@
-import { Router } from "express";
-
-import { Authenticate } from "@/middleware/authenticate.middleware";
-import { authorize } from "@/middleware/authorize.middleware";
-import { validate } from "@/middleware/validateRequest.middleware";
 import {
-  createPostHandler,
-  deletePostHandler,
-  getAllPostsHandler,
-  getPostByIdHandler,
-  getPostHandler,
-  getUserPosts,
-  listPublishedPostsHandler,
-  updatePostHandler,
+	bookmarkPostController,
+	createPostController,
+	deletePostController,
+	getAllPostsController,
+	getAuthorPostsController,
+	getBookmarkedPostsController,
+	getMyPostsController,
+	getPostController,
+	getPublishedPostsController,
+	unbookmarkPostController,
+	updatePostController,
 } from "@modules/post/post.controller";
-import {
-  createPostSchema,
-  deletePostSchema,
-  generatePresignedUrlSchema,
-  getPostByIdSchema,
-  getPostSchema,
-  getUserPostsSchema,
-  updatePostSchema,
-} from "@modules/post/post.schema";
-import { generatePresignedUrl } from "./post.utils";
+import { Router } from "express";
+import { Permissions } from "@/authorization/permissions";
+import { Authenticate } from "@/middleware/authenticate.middleware";
+import { RequirePermission } from "@/middleware/authorize.middleware";
+import { canAccessPost } from "./post.access";
 
 const router = Router();
 
-router
-  .route("/")
-  .post(validate(createPostSchema), Authenticate, createPostHandler)
-  .get(listPublishedPostsHandler);
-
-router.get("/user", validate(getUserPostsSchema), Authenticate, getUserPosts);
-
-router.get("/slug/:slug", validate(getPostSchema), getPostHandler);
-
-router
-  .route("/id/:postId")
-  .get(validate(getPostByIdSchema), getPostByIdHandler)
-  .patch(
-    validate(updatePostSchema),
-    Authenticate,
-    authorize("ADMIN", "USER"),
-    updatePostHandler,
-  )
-  .delete(
-    validate(deletePostSchema),
-    Authenticate,
-    authorize("ADMIN", "USER"),
-    deletePostHandler,
-  );
+router.get("/", getPublishedPostsController);
+router.get("/slug/:slug", getPostController);
+router.get("/author/:username", getAuthorPostsController);
 
 router.post(
-  "/generate-presigned-url",
-  validate(generatePresignedUrlSchema),
-  Authenticate,
-  generatePresignedUrl,
+	"/",
+	Authenticate,
+	RequirePermission(Permissions.POST_CREATE),
+	createPostController,
 );
 
-router.get("/admin", Authenticate, authorize("ADMIN"), getAllPostsHandler);
+router.get("/me", Authenticate, getMyPostsController);
+
+router.get(
+	"/admin",
+	Authenticate,
+	RequirePermission(Permissions.POST_READ_ANY),
+	getAllPostsController,
+);
+
+router.get(
+	"/me/bookmarks",
+	Authenticate,
+	RequirePermission(Permissions.USER_READ_SELF),
+	getBookmarkedPostsController,
+);
+
+router.put(
+	"/:id/bookmark",
+	Authenticate,
+	RequirePermission(Permissions.USER_READ_SELF),
+	bookmarkPostController,
+);
+
+router.delete(
+	"/:id/bookmark",
+	Authenticate,
+	RequirePermission(Permissions.USER_READ_SELF),
+	unbookmarkPostController,
+);
+
+router.patch(
+	"/:id",
+	Authenticate,
+	RequirePermission(Permissions.POST_UPDATE_OWN),
+	canAccessPost(),
+	updatePostController,
+);
+
+router.delete(
+	"/:id",
+	Authenticate,
+	RequirePermission(Permissions.POST_DELETE_OWN),
+	canAccessPost(),
+	deletePostController,
+);
+
 export default router;

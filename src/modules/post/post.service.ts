@@ -1,219 +1,330 @@
-import slugify from "slugify";
-
-import prisma from "@/config/db";
-import { BadRequestError, NotFoundError } from "@/errors";
 import type {
-  CreatePostInput,
-  GetPostInput,
-  ListPostsInput,
-  UpdatePostInput,
+	CreatePostInput,
+	GetAllPostsInput,
+	UpdatePostInput,
 } from "@modules/post/post.schema";
 import {
-  buildOrderby,
-  buildWhereClause,
-  checkPostAuthorization,
-  parseAndValidatePagination,
-  sanitizeContent,
+	buildOrderby,
+	buildWhereClause,
+	generateExcerpt,
+	generateUniqueSlug,
+	sanitizeContent,
 } from "@modules/post/post.utils";
-import { PostStatus, type Role } from "@prisma/client";
+import { PostStatus } from "generated/prisma/enums";
+import { BadRequestError, NotFoundError } from "@/errors";
+import { db } from "@/libs/db";
 
 const POST_INCLUDE_CONFIG = {
-  categories: true,
-  author: { select: { username: true, id: true } },
+	categories: { select: { id: true, name: true } },
+	tags: { select: { id: true, name: true } },
+	media: { select: { id: true, url: true, type: true } },
+	author: { select: { username: true, avatar: true } },
 } as const;
 
-export const createPostService = async (
-  createPostInput: CreatePostInput,
-  authorId: string,
-) => {
-  const { categories, content, title, images, status, coverImage } =
-    createPostInput;
+export const createPost = async ({
+	authorId,
+	input,
+}: {
+	authorId: string;
+	input: CreatePostInput;
+}) => {
+	const { title, content, categories, media, tags, ...rest } = input;
 
-  const slug = slugify(title, { lower: true });
-  const existingSlug = await prisma.post.findUnique({ where: { slug } });
-  if (existingSlug) {
-    throw new BadRequestError("A post with a similar slug already exists");
-  }
+	const slug = await generateUniqueSlug({ title });
 
-  const sanitizedContent = sanitizeContent(content ?? "");
+	const [categoryIds, mediaIds] = await Promise.all([
+		db.category.findMany({
+			where: {
+				name: { in: categories },
+			},
+			select: { id: true },
+		}),
+		media?.length
+			? db.media.findMany({
+					where: { id: { in: media }, uploaderId: authorId, postId: null },
+					select: { id: true },
+				})
+			: [],
+	]);
 
-  const newPost = await prisma.post.create({
-    data: {
-      title,
-      content: sanitizedContent,
-      slug,
-      authorId,
-      categories: {
-        connect: categories?.map((id) => ({ id })),
-      },
-      images,
-      status,
-      coverImage,
-    },
-    include: POST_INCLUDE_CONFIG,
-  });
-  return newPost;
+	if (categoryIds.length !== categories.length) {
+		throw new BadRequestError("One or more categories are invalid");
+	}
+	if (media?.length && mediaIds.length !== media.length) {
+		throw new BadRequestError(
+			"Some media files are unavailable or already linked to other posts",
+		);
+	}
+
+	const cleanContent = sanitizeContent(content);
+	const excerpt = rest.excerpt ?? generateExcerpt(cleanContent, 150);
+
+	return db.post.create({
+		data: {
+			...rest,
+			title,
+			slug,
+			content: cleanContent,
+			authorId,
+			excerpt,
+			metaTitle: rest.metaTitle ?? title,
+			metaDescription: rest.metaDescription ?? excerpt,
+			categories: {
+				connect: categoryIds.map((c) => ({ id: c.id })),
+			},
+			tags: {
+				connectOrCreate: tags.map((tag) => ({
+					where: { name: tag },
+					create: { name: tag },
+				})),
+			},
+			media: mediaIds.length
+				? { connect: mediaIds.map((m) => ({ id: m.id })) }
+				: undefined,
+			publishedAt:
+				rest.status === PostStatus.PUBLISHED
+					? rest.publishAt || new Date()
+					: null,
+		},
+		include: POST_INCLUDE_CONFIG,
+	});
 };
 
-export const listPostsService = async (listPostsInput: ListPostsInput) => {
-  const { page, limit, category, filter, sort } = listPostsInput;
+export const getPosts = async (input: GetAllPostsInput) => {
+	const { page, limit, sort, authorId, authorUsername, ...filters } = input;
+	console.log(input, "input");
 
-  // Parse pagination parameters
-  const { pageNum, limitNum, skip } = parseAndValidatePagination(page, limit);
+	if (authorId && authorUsername) {
+		throw new BadRequestError("invalid author filter");
+	}
 
-  // Build query conditions
-  const orderBy = buildOrderby(sort);
-  const where = buildWhereClause(PostStatus.PUBLISHED, category, filter);
+	// Build query conditions
+	const orderBy = buildOrderby(sort);
+	const where = buildWhereClause({
+		...filters,
+		authorId,
+		authorUsername,
+	});
 
-  const [posts, total] = await Promise.all([
-    prisma.post.findMany({
-      skip,
-      take: limitNum,
-      where,
-      include: {
-        categories: { select: { name: true } },
-        author: { select: { username: true } },
-      },
-      orderBy,
-    }),
-    prisma.post.count({ where }),
-  ]);
+	const [posts, total] = await Promise.all([
+		db.post.findMany({
+			skip: (page - 1) * limit,
+			take: limit,
+			where,
+			include: {
+				categories: { select: { name: true } },
+				tags: { select: { name: true } },
+				author: { select: { username: true, avatar: true } },
+			},
+			orderBy,
+		}),
+		db.post.count({ where }),
+	]);
 
-  const meta = {
-    page: pageNum,
-    limit: limitNum,
-    totalPages: Math.ceil(total / limitNum),
-    totalItems: total,
-    hasNextPage: pageNum < Math.ceil(total / limitNum),
-    hasPreviousPage: pageNum > 1,
-  };
+	const totalPages = Math.ceil(total / limit);
 
-  return { posts, meta };
+	return {
+		posts,
+		meta: {
+			page,
+			limit,
+			totalPages,
+			totalItems: total,
+			hasNextPage: page < totalPages,
+			hasPreviousPage: page > 1,
+		},
+	};
 };
 
-export const updatePostService = async (
-  postId: string,
-  authorId: string,
-  userRole: Role,
-  updatePostInput: UpdatePostInput["body"],
-) => {
-  const existingPost = await findPostByIdService(postId);
-  if (!existingPost) {
-    throw new NotFoundError("post does not exist");
-  }
-
-  checkPostAuthorization(existingPost, authorId, userRole, "update");
-
-  const { title, categories, content, ...otherFields } = updatePostInput;
-
-  const slug = title ? slugify(title, { lower: true }) : undefined;
-  if (slug && slug !== existingPost.slug) {
-    const existingSlug = await prisma.post.findUnique({ where: { slug } });
-    if (existingSlug) {
-      throw new BadRequestError("A post with a similar slug already exists");
-    }
-  }
-
-  const updatedPost = await prisma.post.update({
-    where: { id: postId },
-    data: {
-      ...otherFields,
-      slug,
-      content: content ? sanitizeContent(content) : undefined,
-      categories: categories
-        ? { connect: categories?.map((id) => ({ id })) }
-        : undefined,
-    },
-    include: POST_INCLUDE_CONFIG,
-  });
-
-  return updatedPost;
+export const getPostBySlug = async (slug: string) => {
+	const post = await db.post.findFirst({
+		where: { slug, status: PostStatus.PUBLISHED, deletedAt: null },
+		include: POST_INCLUDE_CONFIG,
+	});
+	if (!post) {
+		throw new NotFoundError("post not found");
+	}
+	return post;
 };
 
-export const deletePostService = async (
-  postId: string,
-  authorId: string,
-  userRole: Role,
-) => {
-  const existingPost = await findPostByIdService(postId);
-  if (!existingPost) {
-    throw new NotFoundError("post does not exist");
-  }
+export const updatePost = async ({
+	authorId,
+	postId,
+	input,
+}: {
+	authorId: string;
+	postId: string;
+	input: UpdatePostInput;
+}) => {
+	const existingPost = await db.post.findUnique({
+		where: { id: postId },
+		select: { title: true, content: true },
+	});
 
-  checkPostAuthorization(existingPost, authorId, userRole, "delete");
+	if (!existingPost) throw new NotFoundError("Post not found");
 
-  const deletedPost = await prisma.post.delete({
-    where: { id: postId },
-  });
+	const { categories, content, title, media, tags, status, ...rest } = input;
 
-  return deletedPost;
+	const [categoryIds, mediaIds] = await Promise.all([
+		categories
+			? db.category.findMany({
+					where: { name: { in: categories } },
+					select: { id: true },
+				})
+			: Promise.resolve(null),
+		media?.length
+			? db.media.findMany({
+					where: {
+						id: { in: media },
+						uploaderId: authorId,
+						OR: [{ postId: null }, { postId }],
+					},
+					select: { id: true },
+				})
+			: Promise.resolve(null),
+	]);
+	if (categories && categoryIds?.length !== categories.length) {
+		throw new BadRequestError("One or more categories are invalid");
+	}
+
+	if (media?.length && mediaIds?.length !== media.length) {
+		throw new BadRequestError(
+			"Some media files are unavailable or already linked to other posts",
+		);
+	}
+
+	const cleanContent =
+		content !== undefined ? sanitizeContent(content) : undefined;
+
+	const excerpt =
+		content !== undefined
+			? (rest.excerpt ?? generateExcerpt(cleanContent!, 150))
+			: rest.excerpt;
+
+	const finalTitle = title ?? existingPost.title;
+	const finalContent = cleanContent ?? existingPost.content;
+
+	if (status === PostStatus.PUBLISHED) {
+		if (!finalTitle?.trim() || !finalContent?.trim()) {
+			throw new BadRequestError("Title and content are required to publish");
+		}
+	}
+
+	return await db.post.update({
+		where: { id: postId },
+		data: {
+			...rest,
+			title,
+			slug: title
+				? await generateUniqueSlug({ title, excludePostId: postId })
+				: undefined,
+			content: cleanContent,
+			excerpt,
+			status,
+			metaTitle:
+				rest.metaTitle !== undefined
+					? rest.metaTitle
+					: title !== undefined
+						? title
+						: undefined,
+			metaDescription:
+				rest.metaDescription !== undefined
+					? rest.metaDescription
+					: excerpt !== undefined
+						? excerpt
+						: undefined,
+			categories: categoryIds
+				? {
+						set: categoryIds.map((c) => ({ id: c.id })),
+					}
+				: undefined,
+			media:
+				mediaIds !== null
+					? {
+							set: mediaIds.map((m) => ({ id: m.id })),
+						}
+					: undefined,
+			tags: tags
+				? {
+						set: [],
+						connectOrCreate: tags.map((tag) => ({
+							where: { name: tag },
+							create: { name: tag },
+						})),
+					}
+				: undefined,
+			publishedAt:
+				status === PostStatus.PUBLISHED
+					? rest.publishAt || new Date()
+					: status === PostStatus.DRAFT
+						? null
+						: undefined,
+		},
+		include: POST_INCLUDE_CONFIG,
+	});
 };
 
-export const findPostByIdService = (postId: string) => {
-  return prisma.post.findUnique({
-    where: { id: postId },
-    include: {
-      categories: true,
-      author: { select: { username: true } },
-    },
-  });
+export const deletePost = async (postId: string) => {
+	return await db.post.update({
+		where: { id: postId },
+		data: { deletedAt: new Date() },
+	});
 };
 
-export const getPostBySlugService = async (getPostInput: GetPostInput) => {
-  const post = await prisma.post.findUnique({
-    where: { slug: getPostInput.slug },
-    include: {
-      categories: true,
-      author: { select: { username: true } },
-    },
-  });
-  if (!post) {
-    throw new NotFoundError("post not found");
-  }
-  return post;
+export const getBookmarkedPosts = async (userId: string) => {
+	return await db.post.findMany({
+		where: {
+			savedBy: {
+				some: { id: userId },
+			},
+			status: PostStatus.PUBLISHED,
+			deletedAt: null,
+		},
+		include: {
+			author: { select: { username: true, avatar: true } },
+		},
+	});
 };
 
-export const getUserPostsService = async (
-  authorId: string,
-  status: PostStatus,
-) => {
-  const posts = await prisma.post.findMany({
-    where: { status, authorId },
-    include: { categories: true },
-  });
+export const bookmarkPost = async ({
+	userId,
+	postId,
+}: {
+	userId: string;
+	postId: string;
+}) => {
+	const post = await db.post.findFirst({
+		where: { id: postId, status: PostStatus.PUBLISHED, deletedAt: null },
+	});
+	if (!post) throw new NotFoundError("Post not found");
 
-  return posts;
+	return await db.user.update({
+		where: { id: userId },
+		data: {
+			savedPosts: {
+				connect: {
+					id: postId,
+				},
+			},
+		},
+	});
 };
 
-export const getAllPostsService = async (listPostsInput: ListPostsInput) => {
-  const { page, limit, category, filter, sort, status } = listPostsInput;
-  const { pageNum, limitNum, skip } = parseAndValidatePagination(page, limit);
-
-  const orderBy = buildOrderby(sort);
-  const where = buildWhereClause(status, category, filter);
-
-  const [posts, total] = await Promise.all([
-    prisma.post.findMany({
-      skip,
-      take: limitNum,
-      where,
-      include: {
-        categories: { select: { name: true } },
-        author: { select: { username: true } },
-      },
-      orderBy,
-    }),
-    prisma.post.count({ where }),
-  ]);
-
-  const meta = {
-    page: pageNum,
-    limit: limitNum,
-    totalPages: Math.ceil(total / limitNum),
-    totalItems: total,
-    hasNextPage: pageNum < Math.ceil(total / limitNum),
-    hasPreviousPage: pageNum > 1,
-  };
-
-  return { posts, meta };
+export const unbookmarkPost = async ({
+	userId,
+	postId,
+}: {
+	userId: string;
+	postId: string;
+}) => {
+	return await db.user.update({
+		where: { id: userId },
+		data: {
+			savedPosts: {
+				disconnect: {
+					id: postId,
+				},
+			},
+		},
+	});
 };

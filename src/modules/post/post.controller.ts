@@ -1,131 +1,147 @@
-import type { Request, Response } from "express";
-import { StatusCodes } from "http-status-codes";
-
-import { NotFoundError } from "@/errors";
-import type {
-  CreatePostInput,
-  DeletePostInput,
-  GetPostByIdInput,
-  GetPostInput,
-  GetUserPostsInput,
-  ListPostsInput,
-  UpdatePostInput,
+import {
+	createPostSchema,
+	getAllPostsSchema,
+	getPostBySlugSchema,
+	getPublishedPostsSchema,
+	postIdSchema,
+	updatePostSchema,
 } from "@modules/post/post.schema";
 import {
-  createPostService,
-  deletePostService,
-  findPostByIdService,
-  getAllPostsService,
-  getPostBySlugService,
-  getUserPostsService,
-  listPostsService,
-  updatePostService,
+	bookmarkPost,
+	createPost,
+	deletePost,
+	getBookmarkedPosts,
+	getPostBySlug,
+	getPosts,
+	unbookmarkPost,
+	updatePost,
 } from "@modules/post/post.service";
-import type { Role } from "@prisma/client";
+import type { Request, Response } from "express";
 
-export const createPostHandler = async (
-  req: Request<{}, {}, CreatePostInput>,
-  res: Response,
-) => {
-  const post = await createPostService(req.body, req.userId as string);
-  res.status(StatusCodes.CREATED).json({
-    success: true,
-    data: post,
-  });
+export const createPostController = async (req: Request, res: Response) => {
+	const createPostInput = createPostSchema.parse(req.body);
+
+	const post = await createPost({
+		authorId: req.user!.id,
+		input: createPostInput,
+	});
+
+	res.status(201).json({
+		post,
+		message:
+			post.status === "PUBLISHED"
+				? "Post published successfully"
+				: "Post saved as draft",
+	});
 };
 
-export const listPublishedPostsHandler = async (
-  req: Request<{}, {}, {}, ListPostsInput>,
-  res: Response,
+export const getPublishedPostsController = async (
+	req: Request,
+	res: Response,
 ) => {
-  const { posts, meta } = await listPostsService(req.query);
+	const getPostsInput = getPublishedPostsSchema.parse(req.query);
+	const { posts, meta } = await getPosts({
+		...getPostsInput,
+		status: "PUBLISHED",
+	});
 
-  res.status(StatusCodes.OK).json({
-    success: true,
-    data: posts,
-    meta,
-  });
+	res.status(200).json({
+		posts,
+		meta,
+	});
 };
 
-export const getPostHandler = async (
-  req: Request<GetPostInput>,
-  res: Response,
-) => {
-  const post = await getPostBySlugService(req.params);
+export const getPostController = async (req: Request, res: Response) => {
+	const { slug } = getPostBySlugSchema.parse(req.params);
+	const post = await getPostBySlug(slug);
 
-  res.status(StatusCodes.OK).json({
-    success: true,
-    data: post,
-  });
+	res.status(200).json({
+		post,
+	});
 };
 
-export const updatePostHandler = async (
-  req: Request<UpdatePostInput["params"], {}, UpdatePostInput["body"]>,
-  res: Response,
-) => {
-  const post = await updatePostService(
-    req.params.postId,
-    req.userId as string,
-    req.role as Role,
-    req.body,
-  );
+export const getMyPostsController = async (req: Request, res: Response) => {
+	const getPostsInput = getAllPostsSchema.parse(req.query);
 
-  res.status(StatusCodes.OK).json({
-    success: true,
-    data: post,
-  });
+	const { posts, meta } = await getPosts({
+		...getPostsInput,
+		authorId: req.user!.id,
+	});
+
+	res.status(200).json({
+		posts,
+		meta,
+	});
 };
 
-export const deletePostHandler = async (
-  req: Request<DeletePostInput>,
-  res: Response,
-) => {
-  await deletePostService(
-    req.params.postId,
-    req.userId as string,
-    req.role as Role,
-  );
+export const getAuthorPostsController = async (req: Request, res: Response) => {
+	const getPostsInput = getPublishedPostsSchema.parse(req.query);
 
-  res.status(StatusCodes.NO_CONTENT).json();
+	const { posts, meta } = await getPosts({
+		...getPostsInput,
+		status: "PUBLISHED",
+		authorUsername: req.params.username as string,
+	});
+
+	res.status(200).json({
+		posts,
+		meta,
+	});
 };
 
-export const getUserPosts = async (
-  req: Request<{}, {}, {}, GetUserPostsInput>,
-  res: Response,
-) => {
-  const posts = await getUserPostsService(
-    req.userId as string,
-    req.query.status,
-  );
-  res.status(StatusCodes.OK).json({
-    success: true,
-    data: posts,
-  });
+export const getAllPostsController = async (req: Request, res: Response) => {
+	const getPostsInput = getAllPostsSchema.parse(req.query);
+	const { posts, meta } = await getPosts(getPostsInput);
+
+	res.status(200).json({
+		posts,
+		meta,
+	});
 };
 
-export const getPostByIdHandler = async (
-  req: Request<GetPostByIdInput>,
-  res: Response,
-) => {
-  const post = await findPostByIdService(req.params.postId);
+export const updatePostController = async (req: Request, res: Response) => {
+	const updatePostInput = updatePostSchema.parse(req.body);
+	const { id } = postIdSchema.parse(req.params);
 
-  if (!post) throw new NotFoundError("Post not found");
+	const post = await updatePost({
+		authorId: req.user!.id,
+		postId: id,
+		input: updatePostInput,
+	});
 
-  res.status(StatusCodes.OK).json({
-    success: true,
-    data: post,
-  });
+	res.status(200).json({
+		post,
+	});
 };
 
-export const getAllPostsHandler = async (
-  req: Request<{}, {}, {}, ListPostsInput>,
-  res: Response,
-) => {
-  const { posts, meta } = await getAllPostsService(req.query);
+export const deletePostController = async (req: Request, res: Response) => {
+	const { id } = postIdSchema.parse(req.params);
 
-  res.status(StatusCodes.OK).json({
-    success: true,
-    data: posts,
-    meta,
-  });
+	await deletePost(id);
+
+	res.status(204).json();
+};
+
+export const getBookmarkedPostsController = async (
+	req: Request,
+	res: Response,
+) => {
+	const posts = await getBookmarkedPosts(req.user!.id);
+	res.status(200).json({ posts });
+};
+
+export const bookmarkPostController = async (req: Request, res: Response) => {
+	const { id } = postIdSchema.parse(req.params);
+
+	await bookmarkPost({ userId: req.user!.id, postId: id });
+
+	res.status(200).json({ message: "bookmarked", postId: id });
+};
+
+export const unbookmarkPostController = async (req: Request, res: Response) => {
+	const { id } = postIdSchema.parse(req.params);
+
+	await unbookmarkPost({ userId: req.user!.id, postId: id });
+
+	res.status(200).json({ message: "un-bookmarked", postId: id });
 };

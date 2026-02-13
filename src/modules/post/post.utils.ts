@@ -1,137 +1,172 @@
-import { randomUUID } from "node:crypto";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { Request, Response } from "express";
+import { randomBytes } from "node:crypto";
+import type { Prisma } from "generated/prisma/client";
+import type { PostStatus } from "generated/prisma/enums";
 import sanitizeHtml from "sanitize-html";
+import slugify from "slugify";
+import { db } from "@/libs/db";
 
-import { env } from "@/config/env";
-import { s3 } from "@/config/s3";
-import { BadRequestError, ForbiddenError } from "@/errors";
-import type { GeneratePresignedUrlInput } from "@modules/post/post.schema";
-import { type PostStatus, type Prisma, Role } from "@prisma/client";
-
-const PRESIGNED_URL_EXPIRY_SECONDS = 5 * 60;
-
-export const generatePresignedUrl = async (
-  req: Request<{}, {}, GeneratePresignedUrlInput>,
-  res: Response,
-) => {
-  const { filename, filetype, imageType } = req.body;
-  const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-
-  const uniquePrefix = randomUUID();
-  const folderName = imageType === "avatar" ? "avatars" : "postimages";
-  const fileKey = `${folderName}/${uniquePrefix}-${sanitizedFilename}`;
-  const BUCKET_NAME = env.AWS_S3_BUCKET_NAME;
-
-  const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: fileKey,
-    ContentType: filetype,
-  });
-
-  const url = await getSignedUrl(s3, command, {
-    expiresIn: PRESIGNED_URL_EXPIRY_SECONDS,
-  });
-
-  const fileLink = `https://${BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com/${fileKey}`;
-
-  res.json({ success: true, data: { fileLink, url } });
+export const generateExcerpt = (content: string, maxLength: number): string => {
+	const plainText = content
+		.replace(/<[^>]*>/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+	if (plainText.length <= maxLength) return plainText;
+	return plainText.substring(0, maxLength).trim() + "...";
 };
 
 export const sanitizeContent = (content: string) => {
-  return sanitizeHtml(content, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat([
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
-      "img",
-      "span",
-      "pre",
-    ]),
-    allowedAttributes: {
-      ...sanitizeHtml.defaults.allowedAttributes,
-      "*": ["class", "style"],
-      img: ["src", "alt", "width", "height"],
-    },
-    allowedClasses: {
-      "*": ["*"],
-    },
-    allowedSchemes: ["http", "https", "mailto", "tel"],
-  });
-};
-
-const DEFAULT_PAGE = 1;
-const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 100;
-
-export const parseAndValidatePagination = (page: string, limit: string) => {
-  const pageNum = Math.max(1, Number.parseInt(page) || DEFAULT_PAGE);
-  const limitNum = Math.min(Number.parseInt(limit) || DEFAULT_LIMIT, MAX_LIMIT);
-  const skip = (pageNum - 1) * limitNum;
-
-  return { pageNum, limitNum, skip };
+	return sanitizeHtml(content, {
+		allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+			"h1",
+			"h2",
+			"h3",
+			"h4",
+			"h5",
+			"h6",
+			"img",
+			"span",
+			"pre",
+			"code",
+			"figure",
+			"figcaption",
+		]),
+		allowedAttributes: {
+			...sanitizeHtml.defaults.allowedAttributes,
+			"*": ["class", "id"],
+			img: ["src", "alt", "width", "height"],
+			a: ["href", "target", "rel"],
+			code: ["class"],
+		},
+		allowedClasses: {
+			"*": ["*"],
+		},
+		allowedSchemes: ["http", "https", "mailto"],
+	});
 };
 
 export const buildOrderby = (
-  sort?: string,
-): Prisma.PostOrderByWithRelationInput => {
-  if (!sort) {
-    return { createdAt: "desc" };
-  }
+	sort: string,
+): Prisma.PostOrderByWithRelationInput[] => {
+	const [field, order] = sort.split(":");
 
-  const [field, order] = sort.split(":");
+	// Whitelist allowed sort fields for security
+	const allowedFields = ["createdAt", "updatedAt", "title", "publishedAt"];
 
-  // Whitelist allowed sort fields for security
-  const allowedFields = ["createdAt", "updatedAt", "title", "content"];
-  if (!allowedFields.includes(field)) {
-    return { createdAt: "desc" };
-  }
+	if (!allowedFields.includes(field)) {
+		return [{ createdAt: "desc" }];
+	}
+	const orderDirection = order === "asc" ? "asc" : "desc";
 
-  return { [field]: order === "desc" ? "desc" : "asc" };
+	return [{ [field]: orderDirection }, { createdAt: "desc" }];
 };
 
-export const buildWhereClause = (
-  status?: PostStatus,
-  category?: string,
-  filter?: string,
-): Prisma.PostWhereInput => {
-  const where: Prisma.PostWhereInput = {};
-
-  if (status) {
-    where.status = { equals: status };
-  }
-
-  if (category) {
-    where.categories = {
-      some: { name: { equals: category, mode: "insensitive" } },
-    };
-  }
-
-  if (filter) {
-    where.OR = [
-      { title: { contains: filter, mode: "insensitive" } },
-      {
-        content: { contains: filter, mode: "insensitive" },
-      },
-    ];
-  }
-
-  return where;
+type WhereParams = {
+	status?: PostStatus;
+	category?: string[];
+	tag?: string[];
+	search?: string;
+	includeDeleted?: boolean;
+	authorId?: string;
+	authorUsername?: string;
+	dateFrom?: Date;
+	dateTo?: Date;
 };
 
-export const checkPostAuthorization = (
-  post: { authorId: string },
-  authorId: string,
-  userRole: string,
-  action: string,
-) => {
-  // Allow if user is admin or post owner
-  if (userRole === Role.ADMIN || post.authorId === authorId) {
-    return;
-  }
-  throw new ForbiddenError(`You are not allowed to ${action} this post`);
+export const buildWhereClause = ({
+	status,
+	search,
+	category,
+	tag,
+	includeDeleted,
+	authorId,
+	authorUsername,
+	dateFrom,
+	dateTo,
+}: WhereParams): Prisma.PostWhereInput => {
+	const where: Prisma.PostWhereInput = {};
+
+	if (!includeDeleted) {
+		where.deletedAt = null;
+	}
+
+	if (status) {
+		where.status = { equals: status };
+	}
+
+	if (category?.length) {
+		where.categories = {
+			some: { name: { in: category } },
+		};
+	}
+	if (tag?.length) {
+		where.tags = {
+			some: { name: { in: tag } },
+		};
+	}
+
+	if (authorId) {
+		where.authorId = { equals: authorId };
+	}
+
+	if (authorUsername) {
+		where.author = {
+			username: { equals: authorUsername, mode: "insensitive" },
+		};
+	}
+
+	if (dateFrom || dateTo) {
+		where.publishedAt = {};
+		if (dateFrom) {
+			where.publishedAt.gte = dateFrom;
+		}
+		if (dateTo) {
+			where.publishedAt.lte = dateTo;
+		}
+	}
+
+	if (search) {
+		where.OR = [
+			{ title: { contains: search, mode: "insensitive" } },
+			{
+				content: { contains: search, mode: "insensitive" },
+			},
+			{ excerpt: { contains: search, mode: "insensitive" } },
+			{
+				tags: {
+					some: {
+						name: { contains: search, mode: "insensitive" },
+					},
+				},
+			},
+		];
+	}
+
+	return where;
+};
+
+export const generateUniqueSlug = async ({
+	title,
+	excludePostId,
+	maxRetries = 5,
+}: {
+	title: string;
+	excludePostId?: string;
+	maxRetries?: number;
+}) => {
+	const baseSlug = slugify(title, { lower: true, strict: true });
+	if (!baseSlug) throw new Error("Invalid title");
+
+	for (let i = 0; i < maxRetries; i++) {
+		const slug = i === 0 ? baseSlug : `${baseSlug}-${i + 1}`;
+		const exists = await db.post.findFirst({
+			where: { slug, ...(excludePostId ? { id: { not: excludePostId } } : {}) },
+			select: { id: true },
+		});
+
+		if (!exists) {
+			return slug;
+		}
+	}
+	const randomId = randomBytes(6).toString("hex");
+	return `${baseSlug}-${randomId}`;
 };

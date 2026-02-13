@@ -1,0 +1,142 @@
+@baseUrl = http://localhost:4000
+
+### Health Check
+{{baseUrl}}/health
+
+### Register
+POST {{baseUrl}}/api/auth/signup
+Content-Type: application/json
+
+{
+  "email":"test2@test.com",
+  "username":"test2-user",
+  "password":"test1234"
+}
+
+### Verify-email
+POST {{baseUrl}}/api/auth/verify-email?token=1528aec3-8a2a-42c2-8c8c-becfa6adfeae
+
+
+### Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email":"test@test.com",
+  "password":"test-password"
+}
+
+### Refresh
+POST {{baseUrl}}/api/auth/refresh
+
+### Forgot-password
+POST {{baseUrl}}/api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email":"test@test.com"
+}
+
+### Reset-password
+POST {{baseUrl}}/api/auth/reset-password?token=d3bfb63c-d4e8-476a-850d-68afd1e4e6c3
+Content-Type: application/json
+
+{
+ "password":"test-password"
+}
+
+### Logout
+POST {{baseUrl}}/api/auth/logout
+
+### Logout-all
+POST {{baseUrl}}/api/auth/logout-all
+
+### Create category
+POST {{baseUrl}}/api/categories/
+Content-Type: application/json
+
+{
+  "name":"programming"
+}
+
+### Get all categories
+GET {{baseUrl}}/api/categories/ 
+
+### Update category
+PATCH {{baseUrl}}/api/categories/416477d1-b58b-4f72-a150-9d121d10c7dd
+Content-Type: application/json
+
+{
+  "name":"programming languages"
+}
+
+### Delete category
+DELETE {{baseUrl}}/api/categories/416477d1-b58b-4f72-a150-9d121d10c7dd
+
+### Create tag
+POST {{baseUrl}}/api/tags/
+Content-Type: application/json
+
+{
+  "name":"typescript"
+}
+
+### Get all tags
+GET {{baseUrl}}/api/tags/ 
+
+### Update tag
+PATCH {{baseUrl}}/api/tags/16d64b8b-c305-4aeb-95b0-151015fd6085
+Content-Type: application/json
+
+{
+  "name":"ecamscript"
+}
+
+### Delete tag
+DELETE {{baseUrl}}/api/tags/70405163-962d-4c8f-9553-9d173b2cf09e
+
+### Create-post
+POST {{baseUrl}}/api/posts/
+Content-Type: application/json
+
+{
+  "title":"javascript",
+  "content":"javascript is a funny language",
+  # "status":"PUBLISHED",
+  "categories":["programming"],
+  "tags":["javascript"]
+} 
+
+### Get all posts
+GET {{baseUrl}}/api/posts/
+
+### Get post by slug
+GET {{baseUrl}}/api/posts/slug/javascript-3
+
+### Get post by author-name
+GET {{baseUrl}}/api/posts/author/test2-user
+
+### Get my posts
+GET {{baseUrl}}/api/posts/me
+
+### Get my bookmarked posts
+GET {{baseUrl}}/api/posts/me/bookmarks
+
+### Bookmark post
+PUT  {{baseUrl}}/api/posts/f2c40c83-f207-4051-a12e-83a7693f6c3e/bookmark
+
+### Un-Bookmark post
+DELETE  {{baseUrl}}/api/posts/f2c40c83-f207-4051-a12e-83a7693f6c3e/bookmark
+
+### Update post
+PATCH  {{baseUrl}}/api/posts/c7e32973-1462-4561-ba3d-2efb8bbde3b2
+Content-Type: application/json
+
+{
+  "content":"brandon eich was the creator of js",
+  "status":"PUBLISHED"
+}
+
+### Delete post
+DELETE   {{baseUrl}}/api/posts/c7e32973-1462-4561-ba3d-2efb8bbde3b2
+
