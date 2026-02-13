@@ -1,29 +1,48 @@
-import type { Request, Response } from "express";
-import { StatusCodes } from "http-status-codes";
-
 import {
-  getAllCategoriesService,
-  getFiveCategoriesWithHighestPostCountService,
+	categorySchema,
+	paramsCategorySchema,
+} from "@modules/categories/category.schema";
+import {
+	createCategory,
+	deleteCategory,
+	getAllCategories,
+	updateCategory,
 } from "@modules/categories/category.service";
+import type { Request, Response } from "express";
 
-export const getFeaturedCategoriesHandler = async (
-  req: Request,
-  res: Response,
-) => {
-  const featuredCategories =
-    await getFiveCategoriesWithHighestPostCountService();
+export const getCategoriesController = async (_req: Request, res: Response) => {
+	const categories = await getAllCategories();
 
-  res.status(StatusCodes.OK).json({
-    success: true,
-    data: featuredCategories,
-  });
+	res.status(200).json({
+		categories,
+	});
 };
 
-export const getCategoriesHandler = async (req: Request, res: Response) => {
-  const categories = await getAllCategoriesService();
+export const createCategoryController = async (req: Request, res: Response) => {
+	const { name } = categorySchema.parse(req.body);
 
-  res.status(StatusCodes.OK).json({
-    success: true,
-    data: categories,
-  });
+	const category = await createCategory(name);
+
+	res.status(201).json({
+		category,
+	});
+};
+
+export const updateCategoryController = async (req: Request, res: Response) => {
+	const { id } = paramsCategorySchema.parse(req.params);
+	const { name } = categorySchema.parse(req.body);
+
+	const category = await updateCategory({ id, name });
+
+	res.status(200).json({
+		category,
+	});
+};
+
+export const deleteCategoryController = async (req: Request, res: Response) => {
+	const { id } = paramsCategorySchema.parse(req.params);
+
+	await deleteCategory(id);
+
+	res.status(204).send();
 };

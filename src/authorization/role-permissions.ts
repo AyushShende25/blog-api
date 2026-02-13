@@ -20,6 +20,15 @@ export const RolePermissions: Record<Role, Permission[]> = {
 		Permissions.POST_UPDATE_OWN,
 		Permissions.POST_DELETE_OWN,
 
+		Permissions.POST_READ_ANY,
 		Permissions.POST_MANAGE_ANY,
+
+		Permissions.CATEGORY_CREATE,
+		Permissions.CATEGORY_UPDATE,
+		Permissions.CATEGORY_DELETE,
+
+		Permissions.TAG_CREATE,
+		Permissions.TAG_UPDATE,
+		Permissions.TAG_DELETE,
 	],
 };

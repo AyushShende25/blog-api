@@ -6,7 +6,16 @@ export const Permissions = {
 	POST_UPDATE_OWN: "post:update:own",
 	POST_DELETE_OWN: "post:delete:own",
 
+	POST_READ_ANY: "post:read:any",
 	POST_MANAGE_ANY: "post:manage:any",
+
+	CATEGORY_CREATE: "category:create",
+	CATEGORY_UPDATE: "category:update",
+	CATEGORY_DELETE: "category:delete",
+
+	TAG_CREATE: "tag:create",
+	TAG_UPDATE: "tag:update",
+	TAG_DELETE: "tag:delete",
 
 	ADMIN_PANEL_ACCESS: "admin:access",
 } as const;
