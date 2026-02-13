@@ -1,6 +1,7 @@
 import authRouter from "@modules/auth/auth.router";
 import categoryRouter from "@modules/categories/category.router";
 import postRouter from "@modules/post/post.router";
+import tagRouter from "@modules/tags/tags.router";
 import userRouter from "@modules/users/users.router";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -44,6 +45,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/posts", postRouter);
 app.use("/api/categories", categoryRouter);
+app.use("/api/tags", tagRouter);
 
 app.all("*splat", () => {
 	throw new NotFoundError();
