@@ -1,5 +1,6 @@
 import authRouter from "@modules/auth/auth.router";
 import categoryRouter from "@modules/categories/category.router";
+import mediaRouter from "@modules/media/media.router";
 import postRouter from "@modules/post/post.router";
 import tagRouter from "@modules/tags/tags.router";
 import userRouter from "@modules/users/users.router";
@@ -46,6 +47,7 @@ app.use("/api/users", userRouter);
 app.use("/api/posts", postRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/tags", tagRouter);
+app.use("/api/media", mediaRouter);
 
 app.all("*splat", () => {
 	throw new NotFoundError();

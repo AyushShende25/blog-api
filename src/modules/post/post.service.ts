@@ -92,7 +92,6 @@ export const createPost = async ({
 
 export const getPosts = async (input: GetAllPostsInput) => {
 	const { page, limit, sort, authorId, authorUsername, ...filters } = input;
-	console.log(input, "input");
 
 	if (authorId && authorUsername) {
 		throw new BadRequestError("invalid author filter");

@@ -16,10 +16,11 @@ const envSchema = z.object({
 	JWT_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number(),
 	REFRESH_TOKEN_TTL_SECONDS: z.coerce.number(),
 	REDIS_URL: z.string(),
-	AWS_ACCESS_KEY_ID: z.string(),
-	AWS_SECRET_ACCESS_KEY: z.string(),
-	AWS_REGION: z.string(),
-	AWS_S3_BUCKET_NAME: z.string(),
+	BUCKET_ACCESS_KEY_ID: z.string(),
+	BUCKET_SECRET_ACCESS_KEY: z.string(),
+	BUCKET_REGION: z.string(),
+	BUCKET_NAME: z.string(),
+	BUCKET_CUSTOM_DOMAIN: z.string(),
 	RESET_TOKEN_TTL_MS: z.coerce.number(),
 });
 

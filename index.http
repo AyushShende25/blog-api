@@ -22,8 +22,8 @@ POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email":"test@test.com",
-  "password":"test-password"
+  "email":"test2@test.com",
+  "password":"test1234"
 }
 
 ### Refresh
@@ -104,10 +104,11 @@ Content-Type: application/json
   "content":"javascript is a funny language",
   # "status":"PUBLISHED",
   "categories":["programming"],
-  "tags":["javascript"]
+  "tags":["javascript"],
+  "media":["790a1d98-9247-46e3-91d1-c0717969b618"]
 } 
 
-### Get all posts
+### Get all published posts
 GET {{baseUrl}}/api/posts/
 
 ### Get post by slug
@@ -140,3 +141,75 @@ Content-Type: application/json
 ### Delete post
 DELETE   {{baseUrl}}/api/posts/c7e32973-1462-4561-ba3d-2efb8bbde3b2
 
+### Get all posts - ADMIN
+GET {{baseUrl}}/api/posts/admin
+
+### Generate presigned-url
+POST {{baseUrl}}/api/media/generate-presigned-url
+Content-Type: application/json
+
+{
+  "filename":"pikachu.png",
+  "mimeType":"image/png",
+  "usage":"POST"
+}
+
+### Upload to s3
+PUT presigned-url
+Content-Type: image/png
+
+< ./pikachu.png
+
+### Create media
+POST {{baseUrl}}/api/media/
+Content-Type: application/json
+
+{
+  "url": "object-url",
+	"mimeType": "image/png",
+	"size": 78,
+	"type":"IMAGE"
+}
+
+### Get all users - ADMIN
+GET {{baseUrl}}/api/users/
+
+### Get me
+GET {{baseUrl}}/api/users/me
+
+### Update me
+PATCH {{baseUrl}}/api/users/me
+Content-Type: application/json
+
+{
+    "username": "test-two-user",
+    "socialLinks": [{
+      "platform": "twitter",
+      "link": "https://x.com/test-user"
+    }],
+    "avatar": "https://profile-url.com",
+    "bio": "most amazing bio ever written"
+}
+
+### Delete me
+DELETE {{baseUrl}}/api/users/me
+
+### Update user - ADMIN
+PATCH {{baseUrl}}/api/users/0ae02eb2-07aa-413d-a755-9225c4d4463c
+Content-Type: application/json
+
+{
+   "username": "test-2-user",
+    "socialLinks": [{
+      "platform": "twitter",
+      "link": "https://x.com/test-user"
+    }],
+    "avatar": "https://profile-url.com",
+    "bio": "most amazing bio ever written",
+    "role": "ADMIN",
+    "status": "SUSPENDED",
+    "isVerified": false
+}
+
+### Delete user - ADMIN
+DELETE {{baseUrl}}/api/users/0ae02eb2-07aa-413d-a755-9225c4d4463c

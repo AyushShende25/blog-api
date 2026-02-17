@@ -64,7 +64,7 @@ router.patch(
 	"/:id",
 	Authenticate,
 	RequirePermission(Permissions.POST_UPDATE_OWN),
-	canAccessPost(),
+	canAccessPost(Permissions.POST_MANAGE_ANY),
 	updatePostController,
 );
 
@@ -72,7 +72,7 @@ router.delete(
 	"/:id",
 	Authenticate,
 	RequirePermission(Permissions.POST_DELETE_OWN),
-	canAccessPost(),
+	canAccessPost(Permissions.POST_MANAGE_ANY),
 	deletePostController,
 );
 
