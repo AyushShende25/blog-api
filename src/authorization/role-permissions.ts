@@ -5,6 +5,7 @@ export const RolePermissions: Record<Role, Permission[]> = {
 	USER: [
 		Permissions.USER_READ_SELF,
 		Permissions.USER_UPDATE_SELF,
+		Permissions.USER_DELETE_SELF,
 
 		Permissions.POST_CREATE,
 		Permissions.POST_UPDATE_OWN,
@@ -13,6 +14,9 @@ export const RolePermissions: Record<Role, Permission[]> = {
 	ADMIN: [
 		Permissions.USER_READ_SELF,
 		Permissions.USER_UPDATE_SELF,
+		Permissions.USER_DELETE_SELF,
+		Permissions.USER_READ_ANY,
+		Permissions.USER_MANAGE_ANY,
 
 		Permissions.ADMIN_PANEL_ACCESS,
 

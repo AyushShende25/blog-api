@@ -1,48 +1,58 @@
-import { Router } from "express";
-
-import { Authenticate } from "@/middleware/authenticate.middleware";
-import { authorize } from "@/middleware/authorize.middleware";
-import { validate } from "@/middleware/validateRequest.middleware";
 import {
-  getAllUsersHandler,
-  getCurrentUserHandler,
-  getSavedPostsHandler,
-  savePosthandler,
-  unsavePostHandler,
-  updateAvatarHandler,
+	deleteMyAccountController,
+	deleteUserController,
+	getMyAccountController,
+	getUsersController,
+	updateMyAccountController,
+	updateUserController,
 } from "@modules/users/users.controller";
-import {
-  getAllUsersSchema,
-  savePostSchema,
-  unsavePostSchema,
-  updateAvatarSchema,
-} from "@modules/users/users.schema";
+import { Router } from "express";
+import { Permissions } from "@/authorization/permissions";
+import { Authenticate } from "@/middleware/authenticate.middleware";
+import { RequirePermission } from "@/middleware/authorize.middleware";
 
 const router: Router = Router();
 
-router.get("/me", Authenticate, getCurrentUserHandler);
-
-router.get("/saved", Authenticate, getSavedPostsHandler);
-
-router
-  .route("/saved/:postId")
-  .post(validate(savePostSchema), Authenticate, savePosthandler)
-  .delete(validate(unsavePostSchema), Authenticate, unsavePostHandler);
-
-router.post(
-  "/update-avatar",
-  validate(updateAvatarSchema),
-  Authenticate,
-  authorize("USER"),
-  updateAvatarHandler,
+router.get(
+	"/",
+	Authenticate,
+	RequirePermission(Permissions.USER_READ_ANY),
+	getUsersController,
 );
 
 router.get(
-  "/admin",
-  validate(getAllUsersSchema),
-  Authenticate,
-  authorize("ADMIN"),
-  getAllUsersHandler,
+	"/me",
+	Authenticate,
+	RequirePermission(Permissions.USER_READ_SELF),
+	getMyAccountController,
+);
+
+router.patch(
+	"/me",
+	Authenticate,
+	RequirePermission(Permissions.USER_UPDATE_SELF),
+	updateMyAccountController,
+);
+
+router.delete(
+	"/me",
+	Authenticate,
+	RequirePermission(Permissions.USER_DELETE_SELF),
+	deleteMyAccountController,
+);
+
+router.patch(
+	"/:id",
+	Authenticate,
+	RequirePermission(Permissions.USER_MANAGE_ANY),
+	updateUserController,
+);
+
+router.delete(
+	"/:id",
+	Authenticate,
+	RequirePermission(Permissions.USER_MANAGE_ANY),
+	deleteUserController,
 );
 
 export default router;

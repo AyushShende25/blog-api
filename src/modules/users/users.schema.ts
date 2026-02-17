@@ -1,28 +1,50 @@
-import { postIdSchema } from "@modules/post/post.schema";
-import { z } from "zod";
-
-export const savePostSchema = z.object({ params: postIdSchema });
-
-export const unsavePostSchema = z.object({ params: postIdSchema });
-
-export const updateAvatarSchema = z.object({
-  body: z.object({
-    avatarUrl: z.string().url().min(1, "avatar url cannot be empty"),
-  }),
-});
+import * as z from "zod";
 
 export const getAllUsersSchema = z.object({
-  query: z.object({
-    page: z.string().default("1"),
-    limit: z.string().default("10"),
-    filter: z.string().optional(),
-  }),
+	page: z.coerce.number().int().min(1).default(1),
+	limit: z.coerce.number().int().min(1).max(100).default(10),
+	sort: z.string().default("createdAt:desc"),
+	search: z.string().toLowerCase().trim().optional(),
+	status: z.enum(["ACTIVE", "SUSPENDED", "DELETED"]).optional(),
+	includeDeleted: z.coerce.boolean().default(false).optional(),
 });
 
-export type SavePostInput = z.infer<typeof savePostSchema>["params"];
+export const updateMeSchema = z.object({
+	avatar: z.url().optional(),
+	bio: z.string().trim().max(300).optional(),
+	socialLinks: z
+		.array(
+			z.object({
+				platform: z.enum(["twitter", "linkedin", "github"]),
+				link: z.url(),
+			}),
+		)
+		.optional(),
+	username: z.string().trim().min(3).max(30).optional(),
+});
 
-export type UnsavePostInput = z.infer<typeof unsavePostSchema>["params"];
+export const userIdSchema = z.object({
+	id: z.uuid(),
+});
 
-export type UpdateAvatarInput = z.infer<typeof updateAvatarSchema>["body"];
+export const updateUserSchema = z.object({
+	isVerified: z.boolean().optional(),
+	username: z.string().trim().min(3).max(30).optional(),
+	bio: z.string().trim().max(300).nullable().optional(),
+	avatar: z.url().nullable().optional(),
+	socialLinks: z
+		.array(
+			z.object({
+				platform: z.enum(["twitter", "linkedin", "github"]),
+				link: z.url(),
+			}),
+		)
+		.nullable()
+		.optional(),
+	role: z.enum(["USER", "ADMIN"]).optional(),
+	status: z.enum(["ACTIVE", "SUSPENDED", "DELETED"]).optional(),
+});
 
-export type GetAllUsersInput = z.infer<typeof getAllUsersSchema>["query"];
+export type GetAllUsersInput = z.infer<typeof getAllUsersSchema>;
+export type UpdateMeInput = z.infer<typeof updateMeSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;

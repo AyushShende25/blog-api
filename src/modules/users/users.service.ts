@@ -1,137 +1,213 @@
-import prisma from "@/config/db";
-import { NotFoundError, UnAuthorizedError } from "@/errors";
-import { findPostByIdService } from "@modules/post/post.service";
-import type { Prisma } from "@prisma/client";
-import type { GetAllUsersInput } from "./users.schema";
+import { DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { Prisma } from "generated/prisma/client";
+import { UserStatus } from "generated/prisma/enums";
+import { env } from "@/config/env";
+import { ConflictError, NotFoundError } from "@/errors";
+import { db } from "@/libs/db";
+import { s3 } from "@/libs/s3";
+import { refreshTokenStore } from "@/store/refresh-token.store";
+import type {
+	GetAllUsersInput,
+	UpdateMeInput,
+	UpdateUserInput,
+} from "./users.schema";
+import { buildOrderBy, buildWhereClause } from "./users.utils";
 
-export const getCurrentUserService = async (userId: string) => {
-  const user = await findUserbyId(userId);
-  if (!user) {
-    throw new UnAuthorizedError();
-  }
-  return user;
+export const getMe = async (userId: string) => {
+	const user = await db.user.findFirst({
+		where: { id: userId, status: UserStatus.ACTIVE, deletedAt: null },
+		select: {
+			id: true,
+			email: true,
+			username: true,
+			role: true,
+			socialLinks: true,
+			avatar: true,
+			bio: true,
+		},
+	});
+	if (!user) {
+		throw new NotFoundError("User account is inactive or does not exist");
+	}
+	return user;
 };
 
-export const findUserbyEmail = async (email: string) => {
-  return prisma.user.findUnique({
-    where: { email },
-  });
+export const getAllUsers = async (input: GetAllUsersInput) => {
+	const { limit, page, sort, ...filters } = input;
+
+	const where = buildWhereClause(filters);
+	const orderBy = buildOrderBy(sort);
+
+	const [users, total] = await Promise.all([
+		db.user.findMany({
+			skip: (page - 1) * limit,
+			take: limit,
+			where,
+			orderBy,
+			select: {
+				id: true,
+				username: true,
+				email: true,
+				role: true,
+				status: true,
+				avatar: true,
+				createdAt: true,
+				deletedAt: true,
+			},
+		}),
+		db.user.count({ where }),
+	]);
+
+	return {
+		users,
+		meta: {
+			page,
+			limit,
+			totalPages: Math.ceil(total / limit),
+			totalItems: total,
+			hasNextPage: page < Math.ceil(total / limit),
+			hasPreviousPage: page > 1,
+		},
+	};
 };
 
-export const findUserbyId = async (id: string) => {
-  return prisma.user.findUnique({
-    where: { id },
-    omit: {
-      password: true,
-    },
-  });
+export const updateMe = async ({
+	userId,
+	input,
+}: {
+	userId: string;
+	input: UpdateMeInput;
+}) => {
+	const user = await db.user.findFirst({
+		where: { id: userId, deletedAt: null, status: UserStatus.ACTIVE },
+		select: { id: true },
+	});
+	if (!user) {
+		throw new NotFoundError("user does not exist");
+	}
+
+	try {
+		return await db.user.update({
+			where: { id: userId },
+			data: {
+				bio: input.bio,
+				avatar: input.avatar,
+				socialLinks: input.socialLinks,
+				username: input.username,
+			},
+		});
+	} catch (error) {
+		if (error instanceof Prisma.PrismaClientKnownRequestError) {
+			if (error.code === "P2002") {
+				throw new ConflictError("This username is already taken");
+			}
+		}
+		throw error;
+	}
 };
 
-export const getSavedPostsService = async (userId: string) => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { savedPosts: true },
-  });
-  if (!user) {
-    throw new UnAuthorizedError();
-  }
+export const deleteMe = async (userId: string) => {
+	const user = await db.user.findFirst({
+		where: { id: userId },
+		select: { avatar: true, id: true },
+	});
+	if (!user) {
+		throw new NotFoundError("user does not exist");
+	}
 
-  return user?.savedPosts ?? [];
+	await db.user.update({
+		where: { id: userId },
+		data: {
+			deletedAt: new Date(),
+			status: UserStatus.DELETED,
+			username: `deleted-user-${userId}`,
+			email: `deleted-${userId}@deleted.local`,
+			bio: null,
+			avatar: null,
+			socialLinks: Prisma.DbNull,
+		},
+	});
+
+	const fileKey = user.avatar?.replace(`${env.BUCKET_CUSTOM_DOMAIN}/`, "");
+
+	if (fileKey) {
+		await s3.send(
+			new DeleteObjectCommand({
+				Bucket: env.BUCKET_NAME,
+				Key: fileKey,
+			}),
+		);
+	}
+
+	await refreshTokenStore.revokeAll(userId);
 };
 
-export const savePostService = async (userId: string, postId: string) => {
-  const post = await findPostByIdService(postId);
-  if (!post) throw new NotFoundError("Post not found");
+export const updateUser = async ({
+	userId,
+	input,
+}: {
+	userId: string;
+	input: UpdateUserInput;
+}) => {
+	const user = await db.user.findFirst({
+		where: { id: userId },
+		select: { id: true },
+	});
+	if (!user) {
+		throw new NotFoundError("user does not exist");
+	}
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      savedPosts: {
-        connect: {
-          id: postId,
-        },
-      },
-    },
-  });
+	const deletedAt =
+		input.status === "ACTIVE"
+			? null
+			: input.status === "DELETED"
+				? new Date()
+				: undefined;
+
+	try {
+		return await db.user.update({
+			where: { id: userId },
+			data: {
+				isVerified: input.isVerified,
+				username: input.username,
+				bio: input.bio,
+				avatar: input.avatar,
+				role: input.role,
+				status: input.status,
+				deletedAt,
+				socialLinks:
+					input.socialLinks === undefined
+						? undefined
+						: input.socialLinks === null
+							? Prisma.DbNull
+							: input.socialLinks,
+			},
+		});
+	} catch (error) {
+		if (error instanceof Prisma.PrismaClientKnownRequestError) {
+			if (error.code === "P2002") {
+				throw new ConflictError("username already taken");
+			}
+		}
+		throw error;
+	}
 };
 
-export const unsavePostService = async (userId: string, postId: string) => {
-  const post = await findPostByIdService(postId);
-  if (!post) throw new NotFoundError("Post not found");
+export const deleteUser = async (userId: string) => {
+	const user = await db.user.findUnique({
+		where: { id: userId },
+		select: { id: true },
+	});
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      savedPosts: {
-        disconnect: {
-          id: postId,
-        },
-      },
-    },
-  });
-};
+	if (!user) throw new NotFoundError("user does not exist");
 
-export const updateAvatarService = async (
-  userId: string,
-  newAvatarUrl: string,
-) => {
-  const user = await findUserbyId(userId);
-  if (!user) {
-    throw new NotFoundError("user not found");
-  }
-  const updatedUser = await prisma.user.update({
-    where: { id: userId },
-    data: { avatarUrl: newAvatarUrl },
-    omit: {
-      password: true,
-    },
-  });
-  return updatedUser;
-};
+	await db.user.update({
+		where: { id: userId },
+		data: {
+			deletedAt: new Date(),
+			status: UserStatus.DELETED,
+		},
+	});
 
-export const getAllUsersService = async (
-  getAllUsersInput: GetAllUsersInput,
-) => {
-  const { limit, page, filter } = getAllUsersInput;
-
-  const limitNum = Number.parseInt(limit) || 10;
-  const pageNum = Number.parseInt(page) || 1;
-  const skip = (pageNum - 1) * limitNum;
-
-  const where: Prisma.UserWhereInput = filter
-    ? {
-        OR: [
-          { username: { contains: filter, mode: "insensitive" } },
-          { email: { contains: filter, mode: "insensitive" } },
-        ],
-      }
-    : {};
-
-  const [users, total] = await Promise.all([
-    prisma.user.findMany({
-      skip,
-      take: limitNum,
-      where,
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        role: true,
-        createdAt: true,
-      },
-    }),
-    prisma.user.count({ where }),
-  ]);
-
-  const meta = {
-    page,
-    limit,
-    totalPages: Math.ceil(total / limitNum),
-    totalItems: total,
-    hasNextPage: pageNum < Math.ceil(total / limitNum),
-    hasPreviousPage: pageNum > 1,
-  };
-
-  return { users, meta };
+	await refreshTokenStore.revokeAll(userId);
 };

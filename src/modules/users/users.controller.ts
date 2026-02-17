@@ -1,66 +1,67 @@
-import type { Request, Response } from "express";
-import { StatusCodes } from "http-status-codes";
-
-import type {
-  GetAllUsersInput,
-  SavePostInput,
-  UnsavePostInput,
-  UpdateAvatarInput,
-} from "@modules/users/users.schema";
 import {
-  getAllUsersService,
-  getCurrentUserService,
-  getSavedPostsService,
-  savePostService,
-  unsavePostService,
-  updateAvatarService,
+	deleteMe,
+	deleteUser,
+	getAllUsers,
+	getMe,
+	updateMe,
+	updateUser,
 } from "@modules/users/users.service";
+import type { Request, Response } from "express";
+import {
+	getAllUsersSchema,
+	updateMeSchema,
+	updateUserSchema,
+	userIdSchema,
+} from "./users.schema";
 
-export const getCurrentUserHandler = async (req: Request, res: Response) => {
-  const user = await getCurrentUserService(req.userId as string);
-  res.status(StatusCodes.OK).json({ success: true, data: user });
+export const getMyAccountController = async (req: Request, res: Response) => {
+	const user = await getMe(req.user!.id);
+	res.status(200).json({ user });
 };
 
-export const getSavedPostsHandler = async (req: Request, res: Response) => {
-  const savedPosts = await getSavedPostsService(req.userId as string);
-  res.status(StatusCodes.OK).json({ success: true, data: savedPosts });
-};
-
-export const savePosthandler = async (
-  req: Request<SavePostInput>,
-  res: Response,
+export const updateMyAccountController = async (
+	req: Request,
+	res: Response,
 ) => {
-  await savePostService(req.userId as string, req.params.postId);
-  res.status(StatusCodes.OK).json({ success: true, message: "saved post" });
+	const input = updateMeSchema.parse(req.body);
+
+	const updatedUser = await updateMe({ userId: req.user!.id, input });
+
+	res.status(200).json({ user: updatedUser });
 };
 
-export const unsavePostHandler = async (
-  req: Request<UnsavePostInput>,
-  res: Response,
+export const deleteMyAccountController = async (
+	req: Request,
+	res: Response,
 ) => {
-  await unsavePostService(req.userId as string, req.params.postId);
-  res.status(StatusCodes.OK).json({ success: true, message: "un-saved post" });
+	await deleteMe(req.user!.id);
+
+	res.clearCookie("access_token");
+	res.clearCookie("refresh_token");
+	res.status(204).send();
 };
 
-export const updateAvatarHandler = async (
-  req: Request<{}, {}, UpdateAvatarInput>,
-  res: Response,
-) => {
-  const user = await updateAvatarService(
-    req.userId as string,
-    req.body.avatarUrl,
-  );
-  res.status(StatusCodes.OK).json({ success: true, data: user });
+export const getUsersController = async (req: Request, res: Response) => {
+	const input = getAllUsersSchema.parse(req.query);
+
+	const { users, meta } = await getAllUsers(input);
+
+	res.status(200).json({ users, meta });
 };
 
-export const getAllUsersHandler = async (
-  req: Request<{}, {}, {}, GetAllUsersInput>,
-  res: Response,
-) => {
-  console.log("Raw query:", req.query);
-  console.log("Query keys:", Object.keys(req.query));
-  console.log("Query values:", Object.values(req.query));
-  const { users, meta } = await getAllUsersService(req.query);
+export const updateUserController = async (req: Request, res: Response) => {
+	const { id } = userIdSchema.parse(req.params);
+	const input = updateUserSchema.parse(req.body);
 
-  res.status(StatusCodes.OK).json({ success: true, data: users, meta });
+	const updatedUser = await updateUser({ userId: id, input });
+
+	res.status(200).json({ user: updatedUser });
+};
+
+export const deleteUserController = async (req: Request, res: Response) => {
+	const { id } = userIdSchema.parse(req.params);
+
+	await deleteUser(id);
+
+	res.status(204).send();
 };

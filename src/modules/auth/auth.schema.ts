@@ -11,7 +11,7 @@ const passwordSchema = z.object({
 export const signupSchema = z.object({
 	...emailSchema.shape,
 	...passwordSchema.shape,
-	username: z.string().trim().toLowerCase(),
+	username: z.string().trim().min(3).max(30).toLowerCase(),
 });
 
 export const loginSchema = emailSchema.extend({
