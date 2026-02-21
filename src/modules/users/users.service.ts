@@ -24,6 +24,13 @@ export const getMe = async (userId: string) => {
 			socialLinks: true,
 			avatar: true,
 			bio: true,
+			_count: {
+				select: {
+					followers: true,
+					following: true,
+					posts: true,
+				},
+			},
 		},
 	});
 	if (!user) {
@@ -86,7 +93,7 @@ export const updateMe = async ({
 		throw new NotFoundError("user does not exist");
 	}
 
-	if (!input.avatar?.startsWith(env.BUCKET_CUSTOM_DOMAIN)) {
+	if (input.avatar && !input.avatar.startsWith(env.BUCKET_CUSTOM_DOMAIN)) {
 		throw new BadRequestError("Invalid avatar url");
 	}
 
@@ -214,4 +221,90 @@ export const deleteUser = async (userId: string) => {
 	});
 
 	await refreshTokenStore.revokeAll(userId);
+};
+
+export const followUser = async ({
+	followerId,
+	followingId,
+}: {
+	followerId: string;
+	followingId: string;
+}) => {
+	if (followerId === followingId) {
+		throw new BadRequestError("Cannot follow yourself");
+	}
+
+	const user = await db.user.findFirst({
+		where: { id: followingId, deletedAt: null, status: UserStatus.ACTIVE },
+		select: { id: true },
+	});
+	if (!user) {
+		throw new NotFoundError("user not found");
+	}
+
+	return await db.follow.upsert({
+		where: {
+			followerId_followingId: { followerId, followingId },
+		},
+		update: {},
+		create: { followerId, followingId },
+	});
+};
+
+export const unfollowUser = async ({
+	followerId,
+	followingId,
+}: {
+	followerId: string;
+	followingId: string;
+}) => {
+	return await db.follow.deleteMany({
+		where: { followerId, followingId },
+	});
+};
+
+export const getFollowers = async ({
+	userId,
+	page,
+	limit,
+}: {
+	userId: string;
+	page: number;
+	limit: number;
+}) => {
+	return await db.follow.findMany({
+		where: {
+			followingId: userId,
+			following: {
+				deletedAt: null,
+				status: UserStatus.ACTIVE,
+			},
+		},
+		skip: (page - 1) * limit,
+		take: limit,
+		select: {
+			follower: { select: { username: true } },
+		},
+	});
+};
+
+export const getFollowing = async ({
+	userId,
+	page,
+	limit,
+}: {
+	userId: string;
+	page: number;
+	limit: number;
+}) => {
+	return await db.follow.findMany({
+		where: {
+			followerId: userId,
+		},
+		skip: (page - 1) * limit,
+		take: limit,
+		select: {
+			following: { select: { username: true } },
+		},
+	});
 };

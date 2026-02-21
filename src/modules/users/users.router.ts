@@ -1,8 +1,14 @@
 import {
 	deleteMyAccountController,
 	deleteUserController,
+	followUserController,
 	getMyAccountController,
+	getMyFollowersController,
+	getMyFollowingController,
+	getUserFollowersController,
+	getUserFollowingController,
 	getUsersController,
+	unfollowUserController,
 	updateMyAccountController,
 	updateUserController,
 } from "@modules/users/users.controller";
@@ -19,6 +25,10 @@ router.get(
 	RequirePermission(Permissions.USER_READ_ANY),
 	getUsersController,
 );
+
+router.get("/me/followers", Authenticate, getMyFollowersController);
+
+router.get("/me/following", Authenticate, getMyFollowingController);
 
 router.get(
 	"/me",
@@ -40,6 +50,14 @@ router.delete(
 	RequirePermission(Permissions.USER_DELETE_SELF),
 	deleteMyAccountController,
 );
+
+router.post("/:id/follow", Authenticate, followUserController);
+
+router.delete("/:id/follow", Authenticate, unfollowUserController);
+
+router.get("/:id/followers", Authenticate, getUserFollowersController);
+
+router.get("/:id/following", Authenticate, getUserFollowingController);
 
 router.patch(
 	"/:id",

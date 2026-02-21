@@ -22,8 +22,8 @@ POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email":"test2@test.com",
-  "password":"test1234"
+  "email":"test@test.com",
+  "password":"test-password"
 }
 
 ### Refresh
@@ -193,6 +193,24 @@ Content-Type: application/json
 
 ### Delete me
 DELETE {{baseUrl}}/api/users/me
+
+### Get my followers
+Get {{baseUrl}}/api/users/me/followers
+
+### Get my following
+Get {{baseUrl}}/api/users/me/following
+
+### follow user
+POST {{baseUrl}}/api/users/a9d22620-308d-401a-82f6-c431570b5660/follow
+
+### unfollow user
+DELETE {{baseUrl}}/api/users/a9d22620-308d-401a-82f6-c431570b5660/follow
+
+### Get user's followers
+GET {{baseUrl}}/api/users/a9d22620-308d-401a-82f6-c431570b5660/followers
+
+### Get user's following
+GET {{baseUrl}}/api/users/a9d22620-308d-401a-82f6-c431570b5660/following
 
 ### Update user - ADMIN
 PATCH {{baseUrl}}/api/users/0ae02eb2-07aa-413d-a755-9225c4d4463c

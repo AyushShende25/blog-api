@@ -45,6 +45,11 @@ export const updateUserSchema = z.object({
 	status: z.enum(["ACTIVE", "SUSPENDED", "DELETED"]).optional(),
 });
 
+export const followSchema = z.object({
+	page: z.coerce.number().int().min(1).default(1),
+	limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 export type GetAllUsersInput = z.infer<typeof getAllUsersSchema>;
 export type UpdateMeInput = z.infer<typeof updateMeSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
