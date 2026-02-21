@@ -21,6 +21,12 @@ export const Permissions = {
 	TAG_UPDATE: "tag:update",
 	TAG_DELETE: "tag:delete",
 
+	COMMENT_CREATE: "comment:create",
+	COMMENT_UPDATE_OWN: "comment:update:own",
+	COMMENT_DELETE_OWN: "comment:delete:own",
+
+	COMMENT_MANAGE_ANY: "comment:manage:any",
+
 	ADMIN_PANEL_ACCESS: "admin:access",
 } as const;
 

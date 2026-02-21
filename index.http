@@ -112,10 +112,10 @@ Content-Type: application/json
 GET {{baseUrl}}/api/posts/
 
 ### Get post by slug
-GET {{baseUrl}}/api/posts/slug/javascript-3
+GET {{baseUrl}}/api/posts/slug/ecmascript-language
 
 ### Get post by author-name
-GET {{baseUrl}}/api/posts/author/test2-user
+GET {{baseUrl}}/api/posts/author/test-2-user
 
 ### Get my posts
 GET {{baseUrl}}/api/posts/me
@@ -213,3 +213,40 @@ Content-Type: application/json
 
 ### Delete user - ADMIN
 DELETE {{baseUrl}}/api/users/0ae02eb2-07aa-413d-a755-9225c4d4463c
+
+### Add like
+POST {{baseUrl}}/api/like/post/53cd5205-8c50-4255-a5a7-8e5f45e6b3fa
+
+### Remove like
+DELETE  {{baseUrl}}/api/like/post/53cd5205-8c50-4255-a5a7-8e5f45e6b3fa
+
+### Create comment
+POST {{baseUrl}}/api/comments/post/53cd5205-8c50-4255-a5a7-8e5f45e6b3fa
+Content-Type: application/json
+
+{
+  "content":"new comment"
+}
+
+### Create reply
+POST {{baseUrl}}/api/comments/post/53cd5205-8c50-4255-a5a7-8e5f45e6b3fa
+Content-Type: application/json
+
+{
+  "content":"new reply",
+  "parentId":"b0ef4bb8-6207-4386-b253-3a0785748cbe"
+}
+
+### Get comments for a post
+GET {{baseUrl}}/api/comments/post/53cd5205-8c50-4255-a5a7-8e5f45e6b3fa
+
+### Update comment
+PATCH {{baseUrl}}/api/comments/b0ef4bb8-6207-4386-b253-3a0785748cbe
+Content-Type: application/json
+
+{
+  "content":"updated comment"
+}
+
+### Delete comment
+DELETE {{baseUrl}}/api/comments/b0ef4bb8-6207-4386-b253-3a0785748cbe

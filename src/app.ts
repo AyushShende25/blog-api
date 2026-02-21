@@ -1,5 +1,7 @@
 import authRouter from "@modules/auth/auth.router";
 import categoryRouter from "@modules/categories/category.router";
+import commentRouter from "@modules/comments/comments.router";
+import likeRouter from "@modules/likes/likes.router";
 import mediaRouter from "@modules/media/media.router";
 import postRouter from "@modules/post/post.router";
 import tagRouter from "@modules/tags/tags.router";
@@ -48,6 +50,8 @@ app.use("/api/posts", postRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/tags", tagRouter);
 app.use("/api/media", mediaRouter);
+app.use("/api/like", likeRouter);
+app.use("/api/comments", commentRouter);
 
 app.all("*splat", () => {
 	throw new NotFoundError();

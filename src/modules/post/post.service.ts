@@ -114,6 +114,7 @@ export const getPosts = async (input: GetAllPostsInput) => {
 				categories: { select: { name: true } },
 				tags: { select: { name: true } },
 				author: { select: { username: true, avatar: true } },
+				_count: { select: { likes: true, comments: true } },
 			},
 			orderBy,
 		}),
@@ -138,7 +139,10 @@ export const getPosts = async (input: GetAllPostsInput) => {
 export const getPostBySlug = async (slug: string) => {
 	const post = await db.post.findFirst({
 		where: { slug, status: PostStatus.PUBLISHED, deletedAt: null },
-		include: POST_INCLUDE_CONFIG,
+		include: {
+			...POST_INCLUDE_CONFIG,
+			_count: { select: { likes: true } },
+		},
 	});
 	if (!post) {
 		throw new NotFoundError("post not found");

@@ -2,7 +2,7 @@ import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "generated/prisma/client";
 import { UserStatus } from "generated/prisma/enums";
 import { env } from "@/config/env";
-import { ConflictError, NotFoundError } from "@/errors";
+import { BadRequestError, ConflictError, NotFoundError } from "@/errors";
 import { db } from "@/libs/db";
 import { s3 } from "@/libs/s3";
 import { refreshTokenStore } from "@/store/refresh-token.store";
@@ -84,6 +84,10 @@ export const updateMe = async ({
 	});
 	if (!user) {
 		throw new NotFoundError("user does not exist");
+	}
+
+	if (!input.avatar?.startsWith(env.BUCKET_CUSTOM_DOMAIN)) {
+		throw new BadRequestError("Invalid avatar url");
 	}
 
 	try {

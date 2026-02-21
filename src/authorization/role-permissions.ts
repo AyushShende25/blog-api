@@ -10,6 +10,10 @@ export const RolePermissions: Record<Role, Permission[]> = {
 		Permissions.POST_CREATE,
 		Permissions.POST_UPDATE_OWN,
 		Permissions.POST_DELETE_OWN,
+
+		Permissions.COMMENT_CREATE,
+		Permissions.COMMENT_UPDATE_OWN,
+		Permissions.COMMENT_DELETE_OWN,
 	],
 	ADMIN: [
 		Permissions.USER_READ_SELF,
@@ -26,6 +30,12 @@ export const RolePermissions: Record<Role, Permission[]> = {
 
 		Permissions.POST_READ_ANY,
 		Permissions.POST_MANAGE_ANY,
+
+		Permissions.COMMENT_CREATE,
+		Permissions.COMMENT_UPDATE_OWN,
+		Permissions.COMMENT_DELETE_OWN,
+
+		Permissions.COMMENT_MANAGE_ANY,
 
 		Permissions.CATEGORY_CREATE,
 		Permissions.CATEGORY_UPDATE,
