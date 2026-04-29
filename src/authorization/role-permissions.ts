@@ -14,6 +14,8 @@ export const RolePermissions: Record<Role, Permission[]> = {
 		Permissions.COMMENT_CREATE,
 		Permissions.COMMENT_UPDATE_OWN,
 		Permissions.COMMENT_DELETE_OWN,
+
+		Permissions.TAG_CREATE,
 	],
 	ADMIN: [
 		Permissions.USER_READ_SELF,

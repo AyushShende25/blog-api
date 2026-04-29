@@ -22,7 +22,7 @@ export const generatePresignedUrlController = async (
 		usage,
 	});
 
-	res.status(200).json({ result });
+	res.status(200).json({ ...result });
 };
 
 export const createMediaController = async (req: Request, res: Response) => {
@@ -38,5 +38,5 @@ export const deleteMediaController = async (req: Request, res: Response) => {
 
 	await deleteMedia({ userId: req.user!.id, mediaId: id });
 
-	res.status(204).send();
+	res.status(204).end();
 };

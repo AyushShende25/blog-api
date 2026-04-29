@@ -11,7 +11,7 @@ export type BaseEmailJobData = {
 
 export interface VerificationEmailData extends BaseEmailJobData {
 	type: "verification";
-	code: string;
+	link: string;
 }
 
 export interface PasswordResetEmailData extends BaseEmailJobData {

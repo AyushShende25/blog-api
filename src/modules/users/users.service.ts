@@ -31,6 +31,7 @@ export const getMe = async (userId: string) => {
 					posts: true,
 				},
 			},
+			createdAt: true,
 		},
 	});
 	if (!user) {

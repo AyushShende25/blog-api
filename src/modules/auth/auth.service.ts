@@ -40,11 +40,13 @@ export const signup = async (signupInput: SignupInput) => {
 		},
 	});
 
+	const verificationLink = `${env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+
 	await addEmailJob("verification", {
 		type: "verification",
 		email,
 		username,
-		code: verificationToken,
+		link: verificationLink,
 	});
 
 	return { userId: user.id };
