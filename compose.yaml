@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: blog-api
     env_file:
-      - .env
+      - .env.docker
     depends_on:
       - db
       - redis
@@ -21,11 +21,11 @@ services:
       dockerfile: Dockerfile
     container_name: blog-worker
     env_file:
-      - .env
+      - .env.docker
     depends_on:
       - db
       - redis
-    command: ["dist/jobs/worker.js"]
+    command: ["node","dist/worker.js"]
     restart: unless-stopped
     networks:
       - blog-network

@@ -13,12 +13,13 @@
 		"format": "pnpm exec biome format --write",
 		"lint": "pnpm exec biome lint --write",
 		"check": "pnpm exec biome check --write",
-		"prepare": "husky"
+		"db:deploy": "pnpm dlx prisma migrate deploy && pnpm dlx prisma generate",
+		"prepare": "husky || true"
 	},
 	"author": "Ayush",
 	"license": "MIT",
 	"engines": {
-		"node": ">=24.12.0"
+		"node": ">=24.15.0"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.966.0",

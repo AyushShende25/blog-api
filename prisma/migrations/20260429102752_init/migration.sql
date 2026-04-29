@@ -39,6 +39,28 @@ CREATE TABLE "users" (
 );
 
 -- CreateTable
+CREATE TABLE "verification_tokens" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "verification_tokens_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "password_reset_tokens" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "password_reset_tokens_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "posts" (
     "id" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -49,7 +71,6 @@ CREATE TABLE "posts" (
     "metaDescription" TEXT,
     "ogImage" TEXT,
     "authorId" TEXT,
-    "authorUsername" TEXT,
     "status" "PostStatus" NOT NULL DEFAULT 'DRAFT',
     "coverImage" TEXT,
     "publishedAt" TIMESTAMP(3),
@@ -104,7 +125,6 @@ CREATE TABLE "comments" (
     "id" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "authorId" TEXT,
-    "authorUsername" TEXT,
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "postId" TEXT NOT NULL,
     "parentId" TEXT,
@@ -195,6 +215,12 @@ CREATE INDEX "_SavedPosts_B_index" ON "_SavedPosts"("B");
 
 -- CreateIndex
 CREATE INDEX "_CategoryToPost_B_index" ON "_CategoryToPost"("B");
+
+-- AddForeignKey
+ALTER TABLE "verification_tokens" ADD CONSTRAINT "verification_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "posts" ADD CONSTRAINT "posts_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;

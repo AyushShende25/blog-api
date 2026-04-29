@@ -131,3 +131,4 @@ dist
 
 generated/
 .DS_STORE
+.env*
