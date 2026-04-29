@@ -11,6 +11,7 @@ import {
 	createPost,
 	deletePost,
 	getBookmarkedPosts,
+	getPostById,
 	getPostBySlug,
 	getPosts,
 	unbookmarkPost,
@@ -54,6 +55,15 @@ export const getPublishedPostsController = async (
 export const getPostController = async (req: Request, res: Response) => {
 	const { slug } = getPostBySlugSchema.parse(req.params);
 	const post = await getPostBySlug(slug);
+
+	res.status(200).json({
+		post,
+	});
+};
+
+export const getPostByIdController = async (req: Request, res: Response) => {
+	const { id } = postIdSchema.parse(req.params);
+	const post = await getPostById(id);
 
 	res.status(200).json({
 		post,
@@ -119,7 +129,7 @@ export const deletePostController = async (req: Request, res: Response) => {
 
 	await deletePost(id);
 
-	res.status(204).json();
+	res.status(204);
 };
 
 export const getBookmarkedPostsController = async (

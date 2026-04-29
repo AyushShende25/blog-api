@@ -6,6 +6,7 @@ import {
 	getAuthorPostsController,
 	getBookmarkedPostsController,
 	getMyPostsController,
+	getPostByIdController,
 	getPostController,
 	getPublishedPostsController,
 	unbookmarkPostController,
@@ -59,6 +60,8 @@ router.delete(
 	RequirePermission(Permissions.USER_READ_SELF),
 	unbookmarkPostController,
 );
+
+router.get("/:id", getPostByIdController);
 
 router.patch(
 	"/:id",

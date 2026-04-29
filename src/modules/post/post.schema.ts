@@ -44,9 +44,7 @@ export const createPostSchema = z
 		publishAt: z.date().optional(),
 	})
 	.refine(
-		(data) => {
-			return data.status === "PUBLISHED" ? !!data.content.trim() : data;
-		},
+		(data) => (data.status === "PUBLISHED" ? !!data.content.trim() : true),
 		{
 			error: "Published posts must have content",
 			path: ["content"],
@@ -62,11 +60,15 @@ export const updatePostSchema = z.object({
 	ogImage: z.url().optional(),
 	coverImage: z.url().optional(),
 	categories: z
-		.array(z.string().trim().toLowerCase())
+		.array(z.string().trim().toLowerCase().min(1))
+		.min(1, "Provide at least one category")
+		.max(3, "Maximum 3 categories allowed")
 		.transform((arr) => [...new Set(arr)])
 		.optional(),
 	tags: z
-		.array(z.string().trim().toLowerCase())
+		.array(z.string().trim().toLowerCase().min(1).max(50))
+		.min(1, "provide at least one tag")
+		.max(5, "Maximum 5 tags allowed")
 		.transform((arr) => [...new Set(arr)])
 		.optional(),
 	media: z.array(z.uuid()).optional(),

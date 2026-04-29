@@ -15,8 +15,8 @@ import { BadRequestError, NotFoundError } from "@/errors";
 import { db } from "@/libs/db";
 
 const POST_INCLUDE_CONFIG = {
-	categories: { select: { id: true, name: true } },
-	tags: { select: { id: true, name: true } },
+	categories: true,
+	tags: true,
 	media: { select: { id: true, url: true, type: true } },
 	author: { select: { username: true, avatar: true } },
 } as const;
@@ -32,10 +32,16 @@ export const createPost = async ({
 
 	const slug = await generateUniqueSlug({ title });
 
-	const [categoryIds, mediaIds] = await Promise.all([
+	const [categoryIds, tagIds, mediaIds] = await Promise.all([
 		db.category.findMany({
 			where: {
-				name: { in: categories },
+				id: { in: categories },
+			},
+			select: { id: true },
+		}),
+		db.tag.findMany({
+			where: {
+				id: { in: tags },
 			},
 			select: { id: true },
 		}),
@@ -49,6 +55,9 @@ export const createPost = async ({
 
 	if (categoryIds.length !== categories.length) {
 		throw new BadRequestError("One or more categories are invalid");
+	}
+	if (tagIds.length !== tags.length) {
+		throw new BadRequestError("One or more tags are invalid");
 	}
 	if (media?.length && mediaIds.length !== media.length) {
 		throw new BadRequestError(
@@ -73,10 +82,7 @@ export const createPost = async ({
 				connect: categoryIds.map((c) => ({ id: c.id })),
 			},
 			tags: {
-				connectOrCreate: tags.map((tag) => ({
-					where: { name: tag },
-					create: { name: tag },
-				})),
+				connect: tagIds.map((t) => ({ id: t.id })),
 			},
 			media: mediaIds.length
 				? { connect: mediaIds.map((m) => ({ id: m.id })) }
@@ -111,8 +117,8 @@ export const getPosts = async (input: GetAllPostsInput) => {
 			take: limit,
 			where,
 			include: {
-				categories: { select: { name: true } },
-				tags: { select: { name: true } },
+				categories: { select: { id: true, name: true } },
+				tags: { select: { id: true, name: true } },
 				author: { select: { username: true, avatar: true } },
 				_count: { select: { likes: true, comments: true } },
 			},
@@ -150,6 +156,16 @@ export const getPostBySlug = async (slug: string) => {
 	return post;
 };
 
+export const getPostById = async (id: string) => {
+	const post = await db.post.findFirst({
+		where: { id, deletedAt: null },
+	});
+	if (!post) {
+		throw new NotFoundError("post not found");
+	}
+	return post;
+};
+
 export const updatePost = async ({
 	authorId,
 	postId,
@@ -171,7 +187,7 @@ export const updatePost = async ({
 	const [categoryIds, mediaIds] = await Promise.all([
 		categories
 			? db.category.findMany({
-					where: { name: { in: categories } },
+					where: { id: { in: categories } },
 					select: { id: true },
 				})
 			: Promise.resolve(null),
@@ -285,6 +301,8 @@ export const getBookmarkedPosts = async (userId: string) => {
 		},
 		include: {
 			author: { select: { username: true, avatar: true } },
+			categories: true,
+			tags: true,
 		},
 	});
 };
