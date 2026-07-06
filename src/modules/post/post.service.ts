@@ -391,7 +391,7 @@ export const unbookmarkPost = async ({
 	});
 };
 
-export const getUserPostStats = async (userId: string) => {
+export const getAuthorPostStats = async (userId: string) => {
 	const [posts, likes, comments] = await Promise.all([
 		db.post.count({
 			where: {
@@ -421,8 +421,8 @@ export const getUserPostStats = async (userId: string) => {
 	]);
 
 	return {
-		posts,
-		likes,
-		comments,
+		publishedPosts: posts,
+		likesReceived: likes,
+		commentsReceived: comments,
 	};
 };

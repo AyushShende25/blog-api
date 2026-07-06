@@ -10,11 +10,11 @@ import {
 	bookmarkPost,
 	createPost,
 	deletePost,
+	getAuthorPostStats,
 	getBookmarkedPosts,
 	getPostById,
 	getPostBySlug,
 	getPosts,
-	getUserPostStats,
 	unbookmarkPost,
 	updatePost,
 } from "@modules/post/post.service";
@@ -157,11 +157,11 @@ export const unbookmarkPostController = async (req: Request, res: Response) => {
 	res.status(200).json({ message: "un-bookmarked", postId: id });
 };
 
-export const getUserPostStatsController = async (
+export const getAuthorPostStatsController = async (
 	req: Request,
 	res: Response,
 ) => {
-	const count = await getUserPostStats(req.user!.id);
+	const stats = await getAuthorPostStats(req.user!.id);
 
-	res.status(200).json({ count });
+	res.status(200).json({ stats });
 };
