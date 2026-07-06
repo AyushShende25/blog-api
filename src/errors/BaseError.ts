@@ -5,5 +5,5 @@ export abstract class BaseError extends Error {
 		super(message);
 		Object.setPrototypeOf(this, new.target.prototype);
 	}
-	abstract serializeErrors(): { message: string; field?: string }[];
+	abstract serializeErrors(): { message: string; path?: string }[];
 }

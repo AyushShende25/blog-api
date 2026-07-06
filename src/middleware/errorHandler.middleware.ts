@@ -16,17 +16,21 @@ export const errorHandler: ErrorRequestHandler = (
 	_next: NextFunction,
 ) => {
 	if (err instanceof ZodError) {
-		return res.status(422).json({
-			errors: err.issues.map((issue) => ({
+		return res.status(422).json(
+			err.issues.map((issue) => ({
 				message: issue.message,
 				...(issue.path.length > 0 && { path: issue.path.join(".") }),
 			})),
-		});
+		);
 	}
 	if (err instanceof BaseError) {
 		return res.status(err.StatusCode).json(err.serializeErrors());
 	}
 
 	env.NODE_ENV === "development" && Logger.error(`Error:${err}`);
-	res.status(500).json([{ message: "Something went wrong" }]);
+	res.status(500).json([
+		{
+			message: "Something went wrong",
+		},
+	]);
 };
