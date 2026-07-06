@@ -7,7 +7,7 @@ export const processEmailJob = async (job: Job<EmailJobData>) => {
 
 	switch (data.type) {
 		case "verification":
-			await emailService.sendVerification(data.email, data.username, data.code);
+			await emailService.sendVerification(data.email, data.username, data.link);
 			break;
 
 		case "password-reset":

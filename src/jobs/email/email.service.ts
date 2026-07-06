@@ -29,11 +29,11 @@ class EmailService {
 		});
 	}
 
-	sendVerification(to: string, username: string, code: string) {
+	sendVerification(to: string, username: string, verificationLink: string) {
 		return this.send(
 			to,
 			"Verify your account",
-			verificationTemplate(username, code),
+			verificationTemplate(username, verificationLink),
 		);
 	}
 
