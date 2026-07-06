@@ -33,7 +33,7 @@ export const sanitizeContent = (content: string) => {
 		allowedAttributes: {
 			...sanitizeHtml.defaults.allowedAttributes,
 			"*": ["class", "id"],
-			img: ["src", "alt", "width", "height"],
+			img: ["src", "alt", "width", "height", "data-media-id"],
 			a: ["href", "target", "rel"],
 			code: ["class"],
 		},
@@ -62,8 +62,8 @@ export const buildOrderby = (
 
 type WhereParams = {
 	status?: PostStatus;
-	category?: string[];
-	tag?: string[];
+	category?: string;
+	tag?: string;
 	search?: string;
 	includeDeleted?: boolean;
 	authorId?: string;
@@ -93,14 +93,14 @@ export const buildWhereClause = ({
 		where.status = { equals: status };
 	}
 
-	if (category?.length) {
+	if (category) {
 		where.categories = {
-			some: { name: { in: category } },
+			some: { name: { equals: category, mode: "insensitive" } },
 		};
 	}
-	if (tag?.length) {
+	if (tag) {
 		where.tags = {
-			some: { name: { in: tag } },
+			some: { name: { equals: tag, mode: "insensitive" } },
 		};
 	}
 
