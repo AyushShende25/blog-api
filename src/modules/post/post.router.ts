@@ -9,6 +9,7 @@ import {
 	getPostByIdController,
 	getPostController,
 	getPublishedPostsController,
+	getUserPostStatsController,
 	unbookmarkPostController,
 	updatePostController,
 } from "@modules/post/post.controller";
@@ -46,7 +47,12 @@ router.get(
 	RequirePermission(Permissions.USER_READ_SELF),
 	getBookmarkedPostsController,
 );
-
+router.get(
+	"/me/stats",
+	Authenticate,
+	RequirePermission(Permissions.USER_READ_SELF),
+	getUserPostStatsController,
+);
 router.put(
 	"/:id/bookmark",
 	Authenticate,

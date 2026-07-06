@@ -25,17 +25,17 @@ export const createPostSchema = z
 			.optional(),
 		ogImage: z.url("Invalid OG image URL").optional(),
 		coverImage: z.url("Invalid cover image URL").optional(),
-		categories: z
-			.array(z.string().trim().toLowerCase().min(1))
+		categoryIds: z
+			.array(z.uuid())
 			.min(1, "Provide at least one category")
 			.max(3, "Maximum 3 categories allowed")
 			.transform((arr) => [...new Set(arr)]),
-		tags: z
-			.array(z.string().trim().toLowerCase().min(1).max(50))
+		tagIds: z
+			.array(z.uuid())
 			.min(1, "provide at least one tag")
 			.max(5, "Maximum 5 tags allowed")
 			.transform((arr) => [...new Set(arr)]),
-		media: z
+		mediaIds: z
 			.array(z.uuid("Invalid media ID format"))
 			.max(10, { message: "You can attach up to 10 images per post" })
 			.optional()
@@ -58,20 +58,20 @@ export const updatePostSchema = z.object({
 	metaTitle: z.string().trim().max(50).optional(),
 	metaDescription: z.string().trim().max(150).optional(),
 	ogImage: z.url().optional(),
-	coverImage: z.url().optional(),
-	categories: z
-		.array(z.string().trim().toLowerCase().min(1))
+	coverImage: z.url().nullable().optional(),
+	categoryIds: z
+		.array(z.uuid())
 		.min(1, "Provide at least one category")
 		.max(3, "Maximum 3 categories allowed")
 		.transform((arr) => [...new Set(arr)])
 		.optional(),
-	tags: z
-		.array(z.string().trim().toLowerCase().min(1).max(50))
+	tagIds: z
+		.array(z.uuid())
 		.min(1, "provide at least one tag")
 		.max(5, "Maximum 5 tags allowed")
 		.transform((arr) => [...new Set(arr)])
 		.optional(),
-	media: z.array(z.uuid()).optional(),
+	mediaIds: z.array(z.uuid()).optional(),
 	status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
 	publishAt: z.date().optional(),
 });
@@ -80,9 +80,9 @@ const baseGetPostsSchema = z.object({
 	page: z.coerce.number().int().min(1).default(1),
 	limit: z.coerce.number().int().min(1).max(100).default(10),
 	sort: z.string().default("createdAt:desc"),
-	search: z.string().toLowerCase().trim().optional(),
-	category: z.array(z.string().toLowerCase().trim()).optional(),
-	tag: z.array(z.string().toLowerCase().trim()).optional(),
+	search: z.string().trim().toLowerCase().optional(),
+	category: z.string().trim().toLowerCase().optional(),
+	tag: z.string().trim().toLowerCase().optional(),
 	dateFrom: z.coerce.date().optional(),
 	dateTo: z.coerce.date().optional(),
 });

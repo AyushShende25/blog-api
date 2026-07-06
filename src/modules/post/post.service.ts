@@ -18,7 +18,7 @@ const POST_INCLUDE_CONFIG = {
 	categories: true,
 	tags: true,
 	media: { select: { id: true, url: true, type: true } },
-	author: { select: { username: true, avatar: true } },
+	author: { select: { username: true, avatar: true, bio: true } },
 } as const;
 
 export const createPost = async ({
@@ -28,38 +28,38 @@ export const createPost = async ({
 	authorId: string;
 	input: CreatePostInput;
 }) => {
-	const { title, content, categories, media, tags, ...rest } = input;
+	const { title, content, categoryIds, mediaIds, tagIds, ...rest } = input;
 
 	const slug = await generateUniqueSlug({ title });
 
-	const [categoryIds, tagIds, mediaIds] = await Promise.all([
+	const [validCategories, validTags, validMedia] = await Promise.all([
 		db.category.findMany({
 			where: {
-				id: { in: categories },
+				id: { in: categoryIds },
 			},
 			select: { id: true },
 		}),
 		db.tag.findMany({
 			where: {
-				id: { in: tags },
+				id: { in: tagIds },
 			},
 			select: { id: true },
 		}),
-		media?.length
+		mediaIds?.length
 			? db.media.findMany({
-					where: { id: { in: media }, uploaderId: authorId, postId: null },
+					where: { id: { in: mediaIds }, uploaderId: authorId, postId: null },
 					select: { id: true },
 				})
 			: [],
 	]);
 
-	if (categoryIds.length !== categories.length) {
+	if (validCategories.length !== categoryIds.length) {
 		throw new BadRequestError("One or more categories are invalid");
 	}
-	if (tagIds.length !== tags.length) {
+	if (validTags.length !== tagIds.length) {
 		throw new BadRequestError("One or more tags are invalid");
 	}
-	if (media?.length && mediaIds.length !== media.length) {
+	if (mediaIds?.length && validMedia.length !== mediaIds.length) {
 		throw new BadRequestError(
 			"Some media files are unavailable or already linked to other posts",
 		);
@@ -79,13 +79,23 @@ export const createPost = async ({
 			metaTitle: rest.metaTitle ?? title,
 			metaDescription: rest.metaDescription ?? excerpt,
 			categories: {
-				connect: categoryIds.map((c) => ({ id: c.id })),
+				connect: validCategories.map((category) => ({
+					id: category.id,
+				})),
 			},
+
 			tags: {
-				connect: tagIds.map((t) => ({ id: t.id })),
+				connect: validTags.map((tag) => ({
+					id: tag.id,
+				})),
 			},
-			media: mediaIds.length
-				? { connect: mediaIds.map((m) => ({ id: m.id })) }
+
+			media: validMedia.length
+				? {
+						connect: validMedia.map((media) => ({
+							id: media.id,
+						})),
+					}
 				: undefined,
 			publishedAt:
 				rest.status === PostStatus.PUBLISHED
@@ -147,7 +157,7 @@ export const getPostBySlug = async (slug: string) => {
 		where: { slug, status: PostStatus.PUBLISHED, deletedAt: null },
 		include: {
 			...POST_INCLUDE_CONFIG,
-			_count: { select: { likes: true } },
+			_count: { select: { likes: true, comments: true } },
 		},
 	});
 	if (!post) {
@@ -159,6 +169,7 @@ export const getPostBySlug = async (slug: string) => {
 export const getPostById = async (id: string) => {
 	const post = await db.post.findFirst({
 		where: { id, deletedAt: null },
+		include: POST_INCLUDE_CONFIG,
 	});
 	if (!post) {
 		throw new NotFoundError("post not found");
@@ -177,36 +188,49 @@ export const updatePost = async ({
 }) => {
 	const existingPost = await db.post.findUnique({
 		where: { id: postId },
-		select: { title: true, content: true },
+		select: { title: true, content: true, status: true, publishedAt: true },
 	});
 
 	if (!existingPost) throw new NotFoundError("Post not found");
 
-	const { categories, content, title, media, tags, status, ...rest } = input;
+	const { categoryIds, content, title, mediaIds, tagIds, status, ...rest } =
+		input;
 
-	const [categoryIds, mediaIds] = await Promise.all([
-		categories
+	const [validCategories, validTags, validMedia] = await Promise.all([
+		categoryIds
 			? db.category.findMany({
-					where: { id: { in: categories } },
+					where: { id: { in: categoryIds } },
 					select: { id: true },
 				})
 			: Promise.resolve(null),
-		media?.length
+		tagIds
+			? db.tag.findMany({
+					where: {
+						id: { in: tagIds },
+					},
+					select: { id: true },
+				})
+			: Promise.resolve(null),
+		mediaIds?.length
 			? db.media.findMany({
 					where: {
-						id: { in: media },
+						id: { in: mediaIds },
 						uploaderId: authorId,
 						OR: [{ postId: null }, { postId }],
 					},
 					select: { id: true },
 				})
-			: Promise.resolve(null),
+			: mediaIds
+				? Promise.resolve([])
+				: Promise.resolve(null),
 	]);
-	if (categories && categoryIds?.length !== categories.length) {
+	if (categoryIds && validCategories?.length !== categoryIds.length) {
 		throw new BadRequestError("One or more categories are invalid");
 	}
-
-	if (media?.length && mediaIds?.length !== media.length) {
+	if (tagIds && validTags?.length !== tagIds.length) {
+		throw new BadRequestError("One or more tags are invalid");
+	}
+	if (mediaIds?.length && validMedia?.length !== mediaIds.length) {
 		throw new BadRequestError(
 			"Some media files are unavailable or already linked to other posts",
 		);
@@ -228,6 +252,24 @@ export const updatePost = async ({
 			throw new BadRequestError("Title and content are required to publish");
 		}
 	}
+
+	if (
+		existingPost.status === PostStatus.PUBLISHED &&
+		status === PostStatus.DRAFT
+	) {
+		throw new BadRequestError("Published posts cannot be reverted to draft");
+	}
+
+	// Draft -> Published - set new published-date
+	// Published -> Published - keep existing published-date
+	// Draft -> Draft - null
+	const publishedAt =
+		status === PostStatus.PUBLISHED &&
+		existingPost.status !== PostStatus.PUBLISHED
+			? (rest.publishAt ?? new Date())
+			: status === PostStatus.DRAFT
+				? null
+				: undefined;
 
 	return await db.post.update({
 		where: { id: postId },
@@ -252,32 +294,31 @@ export const updatePost = async ({
 					: excerpt !== undefined
 						? excerpt
 						: undefined,
-			categories: categoryIds
-				? {
-						set: categoryIds.map((c) => ({ id: c.id })),
-					}
-				: undefined,
-			media:
-				mediaIds !== null
+			categories:
+				validCategories !== null
 					? {
-							set: mediaIds.map((m) => ({ id: m.id })),
+							set: validCategories.map((category) => ({
+								id: category.id,
+							})),
 						}
 					: undefined,
-			tags: tags
-				? {
-						set: [],
-						connectOrCreate: tags.map((tag) => ({
-							where: { name: tag },
-							create: { name: tag },
-						})),
-					}
-				: undefined,
-			publishedAt:
-				status === PostStatus.PUBLISHED
-					? rest.publishAt || new Date()
-					: status === PostStatus.DRAFT
-						? null
-						: undefined,
+			tags:
+				validTags !== null
+					? {
+							set: validTags.map((tag) => ({
+								id: tag.id,
+							})),
+						}
+					: undefined,
+			media:
+				validMedia !== null
+					? {
+							set: validMedia.map((media) => ({
+								id: media.id,
+							})),
+						}
+					: undefined,
+			publishedAt,
 		},
 		include: POST_INCLUDE_CONFIG,
 	});
@@ -348,4 +389,40 @@ export const unbookmarkPost = async ({
 			},
 		},
 	});
+};
+
+export const getUserPostStats = async (userId: string) => {
+	const [posts, likes, comments] = await Promise.all([
+		db.post.count({
+			where: {
+				authorId: userId,
+				status: "PUBLISHED",
+				deletedAt: null,
+			},
+		}),
+		db.like.count({
+			where: {
+				post: {
+					authorId: userId,
+					status: "PUBLISHED",
+					deletedAt: null,
+				},
+			},
+		}),
+		db.comment.count({
+			where: {
+				post: {
+					authorId: userId,
+					status: "PUBLISHED",
+					deletedAt: null,
+				},
+			},
+		}),
+	]);
+
+	return {
+		posts,
+		likes,
+		comments,
+	};
 };
