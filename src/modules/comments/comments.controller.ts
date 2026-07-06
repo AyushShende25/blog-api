@@ -10,6 +10,7 @@ import {
 	createComment,
 	deleteComment,
 	getComments,
+	getCommentsCount,
 	updateComment,
 } from "./comments.service";
 
@@ -17,13 +18,24 @@ export const getCommentsController = async (req: Request, res: Response) => {
 	const { id } = postIdSchema.parse(req.params);
 	const { page, limit } = getCommentsSchema.parse(req.query);
 
-	const comments = await getComments({
+	const { comments, meta } = await getComments({
 		postId: id,
 		page,
 		limit,
 	});
 
-	res.status(200).json({ comments });
+	res.status(200).json({ comments, meta });
+};
+
+export const getPostCommentsCountController = async (
+	req: Request,
+	res: Response,
+) => {
+	const { id } = postIdSchema.parse(req.params);
+
+	const count = await getCommentsCount(id);
+
+	res.status(200).json({ count });
 };
 
 export const createCommentController = async (req: Request, res: Response) => {

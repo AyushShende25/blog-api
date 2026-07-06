@@ -6,6 +6,7 @@ import { canAccessComment } from "./comments.access";
 import {
 	createCommentController,
 	getCommentsController,
+	getPostCommentsCountController,
 	removeCommentController,
 	updateCommentController,
 } from "./comments.controller";
@@ -20,6 +21,8 @@ router.post(
 	RequirePermission(Permissions.COMMENT_CREATE),
 	createCommentController,
 );
+
+router.get("/post/:id/count", getPostCommentsCountController);
 
 router.patch(
 	"/:id",
