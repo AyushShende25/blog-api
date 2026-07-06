@@ -22,8 +22,8 @@ POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email":"test@test.com",
-  "password":"test-password"
+  "email":"test2@test.com",
+  "password":"test1234"
 }
 
 ### Refresh
@@ -56,7 +56,7 @@ POST {{baseUrl}}/api/categories/
 Content-Type: application/json
 
 {
-  "name":"programming"
+  "name":"sustainable development"
 }
 
 ### Get all categories
@@ -78,7 +78,7 @@ POST {{baseUrl}}/api/tags/
 Content-Type: application/json
 
 {
-  "name":"typescript"
+  "name":"road-trip"
 }
 
 ### Get all tags
@@ -182,10 +182,13 @@ PATCH {{baseUrl}}/api/users/me
 Content-Type: application/json
 
 {
-    "username": "test-two-user",
+    "username": "rambo",
     "socialLinks": [{
-      "platform": "twitter",
-      "link": "https://x.com/test-user"
+      "platform": "linkedin",
+      "link": "https://www.linkedin.com/in/ayush-shende-708685413/"
+    },{
+      "platform": "github",
+      "link": "https://github.com/AyushShende25"
     }],
     "avatar": "https://profile-url.com",
     "bio": "most amazing bio ever written"
@@ -232,8 +235,14 @@ Content-Type: application/json
 ### Delete user - ADMIN
 DELETE {{baseUrl}}/api/users/0ae02eb2-07aa-413d-a755-9225c4d4463c
 
+### Check Like Status
+GET {{baseUrl}}/api/like/post/c4be4eef-ae35-400b-9a65-1d2e1ddec881/liked
+
+### Get Post Likes
+GET {{baseUrl}}/api/like/post/c4be4eef-ae35-400b-9a65-1d2e1ddec881/likes
+
 ### Add like
-POST {{baseUrl}}/api/like/post/53cd5205-8c50-4255-a5a7-8e5f45e6b3fa
+POST {{baseUrl}}/api/like/post/c4be4eef-ae35-400b-9a65-1d2e1ddec881
 
 ### Remove like
 DELETE  {{baseUrl}}/api/like/post/53cd5205-8c50-4255-a5a7-8e5f45e6b3fa
@@ -256,7 +265,10 @@ Content-Type: application/json
 }
 
 ### Get comments for a post
-GET {{baseUrl}}/api/comments/post/53cd5205-8c50-4255-a5a7-8e5f45e6b3fa
+GET {{baseUrl}}/api/comments/post/c4be4eef-ae35-400b-9a65-1d2e1ddec881
+
+### Get comments count for a post
+GET {{baseUrl}}/api/comments/post/c4be4eef-ae35-400b-9a65-1d2e1ddec881/count
 
 ### Update comment
 PATCH {{baseUrl}}/api/comments/b0ef4bb8-6207-4386-b253-3a0785748cbe

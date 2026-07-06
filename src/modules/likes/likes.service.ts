@@ -34,3 +34,26 @@ export const removeLike = async ({
 		where: { postId_userId: { postId, userId } },
 	});
 };
+
+export const getLikesCount = async function name(postId: string) {
+	return await db.like.count({ where: { postId } });
+};
+
+export const checkLikedStatus = async ({
+	userId,
+	postId,
+}: {
+	userId: string;
+	postId: string;
+}) => {
+	const post = await db.post.findFirst({
+		where: { id: postId, status: PostStatus.PUBLISHED, deletedAt: null },
+	});
+	if (!post) throw new NotFoundError("Post not found");
+
+	return await db.like.findUnique({
+		where: {
+			postId_userId: { postId, userId },
+		},
+	});
+};

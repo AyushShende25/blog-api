@@ -50,7 +50,7 @@ app.use("/api/posts", postRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/tags", tagRouter);
 app.use("/api/media", mediaRouter);
-app.use("/api/like", likeRouter);
+app.use("/api/likes", likeRouter);
 app.use("/api/comments", commentRouter);
 
 app.all("*splat", () => {

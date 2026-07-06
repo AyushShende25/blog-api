@@ -16,6 +16,9 @@ export const RolePermissions: Record<Role, Permission[]> = {
 		Permissions.COMMENT_DELETE_OWN,
 
 		Permissions.TAG_CREATE,
+
+		Permissions.LIKE_CREATE,
+		Permissions.LIKE_DELETE_OWN,
 	],
 	ADMIN: [
 		Permissions.USER_READ_SELF,
@@ -46,5 +49,9 @@ export const RolePermissions: Record<Role, Permission[]> = {
 		Permissions.TAG_CREATE,
 		Permissions.TAG_UPDATE,
 		Permissions.TAG_DELETE,
+
+		Permissions.LIKE_CREATE,
+		Permissions.LIKE_DELETE_OWN,
+		Permissions.LIKE_MANAGE_ANY,
 	],
 };

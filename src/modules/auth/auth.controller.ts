@@ -34,7 +34,7 @@ export const signupController = async (req: Request, res: Response) => {
 };
 
 export const verifyEmailController = async (req: Request, res: Response) => {
-	const { token } = tokenParamsSchema.parse(req.query);
+	const { token } = tokenParamsSchema.parse(req.body);
 
 	await verifyEmail(token);
 

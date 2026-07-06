@@ -27,6 +27,10 @@ export const Permissions = {
 
 	COMMENT_MANAGE_ANY: "comment:manage:any",
 
+	LIKE_CREATE: "like:create",
+	LIKE_DELETE_OWN: "like:delete:own",
+	LIKE_MANAGE_ANY: "like:manage:any",
+
 	ADMIN_PANEL_ACCESS: "admin:access",
 } as const;
 
