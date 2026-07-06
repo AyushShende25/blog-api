@@ -1,4 +1,5 @@
 import {
+	checkIsFollowingController,
 	deleteMyAccountController,
 	deleteUserController,
 	followUserController,
@@ -7,6 +8,7 @@ import {
 	getMyFollowingController,
 	getUserFollowersController,
 	getUserFollowingController,
+	getUserStatsController,
 	getUsersController,
 	unfollowUserController,
 	updateMyAccountController,
@@ -58,6 +60,10 @@ router.delete("/:id/follow", Authenticate, unfollowUserController);
 router.get("/:id/followers", Authenticate, getUserFollowersController);
 
 router.get("/:id/following", Authenticate, getUserFollowingController);
+
+router.get("/:id/is-following", Authenticate, checkIsFollowingController);
+
+router.get("/:id/stats", Authenticate, getUserStatsController);
 
 router.patch(
 	"/:id",

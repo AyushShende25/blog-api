@@ -119,7 +119,7 @@ export const updateMe = async ({
 };
 
 export const deleteMe = async (userId: string) => {
-	const user = await db.user.findFirst({
+	const user = await db.user.findUnique({
 		where: { id: userId },
 		select: { avatar: true, id: true },
 	});
@@ -161,7 +161,7 @@ export const updateUser = async ({
 	userId: string;
 	input: UpdateUserInput;
 }) => {
-	const user = await db.user.findFirst({
+	const user = await db.user.findUnique({
 		where: { id: userId },
 		select: { id: true },
 	});
@@ -308,4 +308,49 @@ export const getFollowing = async ({
 			following: { select: { username: true } },
 		},
 	});
+};
+
+export const isFollowing = async ({
+	followerId,
+	followingId,
+}: {
+	followerId: string;
+	followingId: string;
+}) => {
+	const follow = await db.follow.findUnique({
+		where: {
+			followerId_followingId: {
+				followerId,
+				followingId,
+			},
+		},
+		select: { followerId: true },
+	});
+
+	return !!follow;
+};
+
+export const userStats = async (userId: string) => {
+	const result = await db.user.findFirst({
+		where: {
+			id: userId,
+			status: UserStatus.ACTIVE,
+			deletedAt: null,
+		},
+		select: {
+			_count: {
+				select: {
+					followers: true,
+					following: true,
+					posts: true,
+				},
+			},
+		},
+	});
+
+	if (!result) {
+		throw new NotFoundError("user not found");
+	}
+
+	return result._count;
 };

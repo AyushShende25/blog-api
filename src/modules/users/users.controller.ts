@@ -6,9 +6,11 @@ import {
 	getFollowers,
 	getFollowing,
 	getMe,
+	isFollowing,
 	unfollowUser,
 	updateMe,
 	updateUser,
+	userStats,
 } from "@modules/users/users.service";
 import type { Request, Response } from "express";
 import {
@@ -131,4 +133,26 @@ export const getUserFollowingController = async (
 	const following = await getFollowing({ userId: id, page, limit });
 
 	res.status(200).json({ following });
+};
+
+export const checkIsFollowingController = async (
+	req: Request,
+	res: Response,
+) => {
+	const { id } = userIdSchema.parse(req.params);
+
+	const result = await isFollowing({
+		followerId: req.user!.id,
+		followingId: id,
+	});
+
+	res.status(200).json({ isFollowing: result });
+};
+
+export const getUserStatsController = async (req: Request, res: Response) => {
+	const { id } = userIdSchema.parse(req.params);
+
+	const stats = await userStats(id);
+
+	res.status(200).json(stats);
 };
