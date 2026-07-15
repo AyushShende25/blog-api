@@ -72,7 +72,8 @@ export const getComments = async ({
   SELECT 
     fc.*, 
     u.username, 
-    u.avatar
+    u.avatar,
+		u.status
   FROM fc
   INNER JOIN users AS u ON fc."authorId" = u.id;
 `;

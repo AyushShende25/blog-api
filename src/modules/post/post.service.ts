@@ -18,7 +18,7 @@ const POST_INCLUDE_CONFIG = {
 	categories: true,
 	tags: true,
 	media: { select: { id: true, url: true, type: true } },
-	author: { select: { username: true, avatar: true, bio: true } },
+	author: { select: { username: true, avatar: true, bio: true, status: true } },
 } as const;
 
 export const createPost = async ({
@@ -127,9 +127,7 @@ export const getPosts = async (input: GetAllPostsInput) => {
 			take: limit,
 			where,
 			include: {
-				categories: { select: { id: true, name: true } },
-				tags: { select: { id: true, name: true } },
-				author: { select: { username: true, avatar: true } },
+				...POST_INCLUDE_CONFIG,
 				_count: { select: { likes: true, comments: true } },
 			},
 			orderBy,
