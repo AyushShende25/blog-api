@@ -130,7 +130,7 @@ export const deletePostController = async (req: Request, res: Response) => {
 
 	await deletePost(id);
 
-	res.status(204);
+	res.status(204).send();
 };
 
 export const getBookmarkedPostsController = async (
