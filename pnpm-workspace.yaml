@@ -1,7 +1,0 @@
-onlyBuiltDependencies:
-  - '@biomejs/biome'
-  - '@prisma/client'
-  - '@prisma/engines'
-  - esbuild
-  - msgpackr-extract
-  - prisma
