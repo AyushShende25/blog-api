@@ -16,8 +16,6 @@ const envSchema = z.object({
 	JWT_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number(),
 	REFRESH_TOKEN_TTL_SECONDS: z.coerce.number(),
 	REDIS_URL: z.string(),
-	BUCKET_ACCESS_KEY_ID: z.string(),
-	BUCKET_SECRET_ACCESS_KEY: z.string(),
 	BUCKET_REGION: z.string(),
 	BUCKET_NAME: z.string(),
 	BUCKET_CUSTOM_DOMAIN: z.string(),

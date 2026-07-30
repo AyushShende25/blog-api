@@ -25,7 +25,6 @@ model User {
   followers           Follow[]             @relation("UserFollowers")
   following           Follow[]             @relation("UserFollows")
   media               Media[]
-  notifications       Notification[]       @relation("UserNotifications")
   deletedAt           DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -172,41 +171,4 @@ model Follow {
 
   @@unique([followerId, followingId])
   @@map("follows")
-}
-
-model Notification {
-  id                  String              @id @default(uuid())
-  title               String
-  message             String
-  data                Json?
-  recipientId         String
-  recipient           User                @relation("UserNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
-  isRead              Boolean             @default(false)
-  readAt              DateTime?
-  expiresAt           DateTime?
-  type                NotificationType
-  notificationChannel NotificationChannel
-  priority            Priority
-  createdAt           DateTime            @default(now())
-
-  @@map("notifications")
-}
-
-enum NotificationType {
-  POST_LIKED
-  POST_COMMENTED
-  COMMENT_REPLIED
-  USER_FOLLOWED
-}
-
-enum Priority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
-}
-
-enum NotificationChannel {
-  WEBSOCKET
-  EMAIL
 }

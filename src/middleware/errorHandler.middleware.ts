@@ -27,10 +27,14 @@ export const errorHandler: ErrorRequestHandler = (
 		return res.status(err.StatusCode).json(err.serializeErrors());
 	}
 
-	env.NODE_ENV === "development" && Logger.error(`Error:${err}`);
-	res.status(500).json([
-		{
-			message: "Something went wrong",
-		},
-	]);
+	Logger.error(`Error:${err}`);
+
+	if (env.NODE_ENV === "production") {
+		return res.status(500).json([{ message: "Something went wrong" }]);
+	}
+
+	return res.status(500).json({
+		message: err.message,
+		stack: err.stack,
+	});
 };
