@@ -1,6 +1,6 @@
 import { hashPassword } from "./../../src/modules/auth/auth.utils";
 
-const hashedPassword = await hashPassword("examplehashedpassword");
+const hashedPassword = await hashPassword(process.env.SEED_USER_PASSWORD!);
 
 export const seedData = {
 	users: [
@@ -12,9 +12,7 @@ export const seedData = {
 			isVerified: true,
 			avatar: null,
 			bio: "Backend engineer exploring distributed systems.",
-			socialLinks: {
-				github: "https://github.com/ayesha",
-			},
+			socialLinks: [{ platform: "github", link: "https://github.com/ayesha" }],
 			role: "ADMIN",
 			status: "ACTIVE",
 			deletedAt: null,
@@ -29,9 +27,7 @@ export const seedData = {
 			isVerified: true,
 			avatar: null,
 			bio: "Cloud enthusiast and AWS learner.",
-			socialLinks: {
-				github: "https://github.com/rohan",
-			},
+			socialLinks: [{ platform: "github", link: "https://github.com/rohan" }],
 			role: "USER",
 			status: "ACTIVE",
 			deletedAt: null,
@@ -46,7 +42,7 @@ export const seedData = {
 			isVerified: true,
 			avatar: null,
 			bio: "Writes about React and frontend architecture.",
-			socialLinks: {},
+			socialLinks: null,
 			role: "USER",
 			status: "ACTIVE",
 			deletedAt: null,
@@ -61,7 +57,7 @@ export const seedData = {
 			isVerified: false,
 			avatar: null,
 			bio: "DevOps and Kubernetes practitioner.",
-			socialLinks: {},
+			socialLinks: null,
 			role: "USER",
 			status: "ACTIVE",
 			deletedAt: null,
@@ -76,7 +72,7 @@ export const seedData = {
 			isVerified: true,
 			avatar: null,
 			bio: "Enjoys databases and clean API design.",
-			socialLinks: {},
+			socialLinks: null,
 			role: "USER",
 			status: "ACTIVE",
 			deletedAt: null,
