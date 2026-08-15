@@ -1,0 +1,83 @@
+services:
+  nginx:
+    image: nginx:1.30
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certbot/www:/var/www/certbot:ro
+      - ./nginx/certbot/conf:/etc/letsencrypt:ro
+    depends_on:
+      - api
+    networks:
+      - blog-network
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: blog-certbot
+    volumes:
+      - ./nginx/certbot/www:/var/www/certbot
+      - ./nginx/certbot/conf:/etc/letsencrypt
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: blog-api
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "4000"
+    restart: unless-stopped
+    networks:
+      - blog-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: blog-worker
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    command: ["node","dist/worker.js"]
+    restart: unless-stopped
+    networks:
+      - blog-network
+
+  db:
+    image: postgres:17
+    container_name: blog-db
+    environment:
+      - POSTGRES_USER=blog_admin
+      - POSTGRES_PASSWORD=blog_admin
+      - POSTGRES_DB=blog_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - blog-network
+
+  redis:
+    image: redis/redis-stack:7.4.0-v8
+    container_name: blog-redis
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - blog-network
+
+volumes:
+  pgdata:
+  redis_data:
+
+networks:
+  blog-network:

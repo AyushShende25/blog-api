@@ -1,4 +1,4 @@
 {
 	"*.{js,jsx,ts,tsx}": ["npx @biomejs/biome check --write"],
-	"*.{json,css,md}": ["npx @biomejs/biome format --write"]
+	"*.{json,css}": ["npx @biomejs/biome format --write"]
 }
